@@ -3472,7 +3472,7 @@ late Feb 2006 by lots of people
 19 August 2004 by Amadeus
 - Fixed ${Me.AltAbilityReady[]}
 - Fixed ${Me.AltAbilityTimer[]}
-- Added ${AltAbility[].MyReuseTime}  (proper reuse time if you hastened AA abilties)
+- Added ${AltAbility[].MyReuseTime}  (proper reuse time if you hastened AA abilities)
 - Added NEW COMMAND:  /aa
 *** Syntax ***
 /aa list all            -- lists all of your AA abilities in format [ID : name]
