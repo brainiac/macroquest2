@@ -86,7 +86,7 @@ using namespace std;
 #include "..\Blech\Blech.h"
 #endif
 //define LIVE, TEST or BETA here depending on which eqgame you are building for. -eqmule sep 27 2014
-#define LIVE
+#define BETA
 #if defined(LIVE)
 #include "eqgame.h"
 #elif defined(TEST)
@@ -95,6 +95,15 @@ using namespace std;
 #include "eqgame(beta).h"
 #endif
 
+#if defined(BETA)
+#define MountWindowParent "KeyRingWnd"
+#define MountWindowList "KRW_Mounts_List"
+#define MountWindowPage "KRW_Mounts_Page"
+#else
+#define MountWindowParent "InventoryWindow"
+#define MountWindowList "IW_Mounts_MountList"
+#define MountWindowPage "IW_Subwindows"
+#endif
 
 #ifdef ISXEQ_LEGACY
 #define LEGACY_API extern
