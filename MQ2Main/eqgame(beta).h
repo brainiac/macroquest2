@@ -16,10 +16,10 @@ GNU General Public License for more details.
 #endif
 
 #define __ClientName                                              "eqgame"
-#define __ExpectedVersionDate                                     "Oct 21 2015"
-#define __ExpectedVersionTime                                     "04:27:35"
-#define __ActualVersionDate_x                                      0xAD5298
-#define __ActualVersionTime_x                                      0xAD52A4
+#define __ExpectedVersionDate                                     "Oct 23 2015"
+#define __ExpectedVersionTime                                     "04:26:54"
+#define __ActualVersionDate_x                                      0xAD52A0
+#define __ActualVersionTime_x                                      0xAD52AC
 
 #define __ClientOverride                                           0
 #define __MacroQuestWinClassName                                  "__MacroQuestTray"
@@ -45,7 +45,7 @@ GNU General Public License for more details.
 #define __AC6_x                                                    0x57D419
 #define __AC7_x                                                    0x57401C
 #define __AC1_Data                                                 0x11111111
-#define __EP1_Data                                                 0x91A31
+#define __EP1_Data                                                 0x845E8
 
 // Direct Input
 #define DI8__Main_x                                                0x11A4718
@@ -155,7 +155,7 @@ GNU General Public License for more details.
 #define instTributeActive_x                                        0xC0B2E5
 #define pinstViewActor_x                                           0xF52448
 #define pinstWorldData_x                                           0x1005C68
-
+#define pinstZoneAddr_x                                            0x101326C
 
 //// 
 //Section 2:  UI Related Offsets 

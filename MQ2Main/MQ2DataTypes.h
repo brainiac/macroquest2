@@ -1767,6 +1767,7 @@ public:
 		ContAddress = 144,
 		ItemLink = 145,
 		Icon = 146,
+		SkillModMax = 147,
     };
     enum ItemMethods
     {
@@ -1919,6 +1920,7 @@ public:
 		TypeMember(ContAddress);
 		TypeMember(ItemLink);
 		TypeMember(Icon);
+		TypeMember(SkillModMax);
     }
 
     ~MQ2ItemType()

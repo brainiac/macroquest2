@@ -5350,6 +5350,14 @@ bool MQ2ItemType::GETMEMBER()
         Dest.DWord=GetItemFromContents(pItem)->RequiredLevel;
         Dest.Type=pIntType;
         return true;
+	case SkillModValue:
+        Dest.DWord=GetItemFromContents(pItem)->SkillModValue;
+        Dest.Type=pIntType;
+        return true;
+	case SkillModMax:
+        Dest.DWord=GetItemFromContents(pItem)->SkillModMax;
+        Dest.Type=pIntType;
+        return true;
     case Evolving:
         Dest.Ptr=pItem;
         Dest.Type=pEvolvingItemType;
