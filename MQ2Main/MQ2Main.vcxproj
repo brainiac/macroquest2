@@ -95,6 +95,9 @@
       <ImportLibrary>$(OutDir)MQ2Main.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)MQ2Auth.exe</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -167,6 +170,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Blech\Blech.h" />
+    <ClInclude Include="..\ISXEQClient.h" />
+    <ClInclude Include="..\MQ2Plugin.h" />
     <ClInclude Include="DataTypeList.h" />
     <ClInclude Include="EQClasses.h" />
     <ClInclude Include="EQData.h" />

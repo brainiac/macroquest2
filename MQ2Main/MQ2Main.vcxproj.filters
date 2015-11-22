@@ -142,5 +142,11 @@
     <ClInclude Include="DataTypeList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\MQ2Plugin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ISXEQClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
