@@ -322,36 +322,6 @@ namespace MQ2Internal {
         struct _MQGroundPending *pNext;
     } MQGROUNDPENDING, *PMQGROUNDPENDING;
 
-    typedef struct _MQPlugin
-    {
-        char szFilename[MAX_PATH];
-        HMODULE hModule;
-        float fpVersion;
-		BOOL bCustom;
-		struct _MQPlugin()
-		{
-			bCustom = 0;
-		}
-        fMQInitializePlugin Initialize;
-        fMQShutdownPlugin Shutdown;
-        fMQZoned Zoned;
-        fMQWriteChatColor WriteChatColor;
-        fMQPulse Pulse;
-        fMQIncomingChat IncomingChat;
-        fMQCleanUI CleanUI;
-        fMQReloadUI ReloadUI;
-        fMQDrawHUD DrawHUD;
-        fMQSetGameState SetGameState;
-        fMQSpawn AddSpawn;
-        fMQSpawn RemoveSpawn;
-        fMQGroundItem AddGroundItem;
-        fMQGroundItem RemoveGroundItem;
-        fMQBeginZone BeginZone; 
-        fMQEndZone EndZone; 
-        struct _MQPlugin* pLast;
-        struct _MQPlugin* pNext;
-    } MQPLUGIN, *PMQPLUGIN;
-
     typedef struct _actordefentry {
         unsigned int Def;
 		int ZoneID;

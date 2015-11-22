@@ -2975,8 +2975,11 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 			MacroError("Plugin '%s' not found.", szName);
 		}
 	}
-	else {
-		if (LoadMQ2Plugin(szName))
+	else
+	{
+		BOOL force = (stricmp(szCommand, "nocheck") == 0);
+
+		if (LoadMQ2Plugin(szName, 0, force))
 		{
 			sprintf(szBuffer, "Plugin '%s' loaded.", szName);
 			WriteChatColor(szBuffer, USERCOLOR_DEFAULT);
