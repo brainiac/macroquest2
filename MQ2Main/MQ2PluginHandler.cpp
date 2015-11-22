@@ -46,53 +46,241 @@ DWORD checkme(char *module)
 
 static unsigned int mq2mainstamp = 0;
 
+// A LegacyPlugin is a plugin that implements the old style of plugin.
+// This will redirect all calls to the global exports of the dll
+class LegacyPlugin : public IPlugin
+{
+public:
+    LegacyPlugin(HMODULE hmod)
+        : capabilities_(0)
+    {
+        initialize_ = (fMQInitializePlugin)GetProcAddress(hmod, "InitializePlugin");
+        shutdown_ = (fMQShutdownPlugin)GetProcAddress(hmod, "ShutdownPlugin");
+        incoming_chat_ = (fMQIncomingChat)GetProcAddress(hmod, "OnIncomingChat");
+        pulse_ = (fMQPulse)GetProcAddress(hmod, "OnPulse");
+        write_chat_color_ = (fMQWriteChatColor)GetProcAddress(hmod, "OnWriteChatColor");
+        zoned_ = (fMQZoned)GetProcAddress(hmod, "OnZoned");
+        clean_ui_ = (fMQCleanUI)GetProcAddress(hmod, "OnCleanUI");
+        reload_ui_ = (fMQReloadUI)GetProcAddress(hmod, "OnReloadUI");
+        draw_hud_ = (fMQDrawHUD)GetProcAddress(hmod, "OnDrawHUD");
+        set_game_state_ = (fMQSetGameState)GetProcAddress(hmod, "SetGameState");
+        add_spawn_ = (fMQSpawn)GetProcAddress(hmod, "OnAddSpawn");
+        remove_spawn_ = (fMQSpawn)GetProcAddress(hmod, "OnRemoveSpawn");
+        add_ground_item_ = (fMQGroundItem)GetProcAddress(hmod, "OnAddGroundItem");
+        remove_ground_item_ = (fMQGroundItem)GetProcAddress(hmod, "OnRemoveGroundItem");
+        begin_zone_ = (fMQBeginZone)GetProcAddress(hmod, "OnBeginZone");
+        end_zone_ = (fMQEndZone)GetProcAddress(hmod, "OnEndZone");
 
-DWORD LoadMQ2Plugin(const PCHAR pszFilename,BOOL bCustom)
+        if (pulse_)
+            capabilities_ |= PLUGIN_WANTS_PULSE;
+        if (draw_hud_)
+            capabilities_ |= PLUGIN_WANTS_DRAWHUD;
+        if (add_spawn_ || remove_spawn_)
+            capabilities_ |= PLUGIN_WANTS_SPAWNS;
+        if (add_ground_item_ || remove_ground_item_)
+            capabilities_ |= PLUGIN_WANTS_GROUNDITEMS;
+    }
+
+    virtual int GetVersion() const { return 0; }
+
+    virtual int GetCapabilities() const { return capabilities_; }
+
+    virtual void Initialize() override
+    {
+        if (initialize_) initialize_();
+    }
+
+    virtual void Shutdown() override
+    {
+        if (shutdown_) shutdown_();
+    }
+
+    virtual void OnCleanUI() override
+    {
+        if (clean_ui_) clean_ui_();
+    }
+
+    virtual void OnReloadUI() override
+    {
+        if (reload_ui_) reload_ui_();
+    }
+
+    virtual void OnDrawHUD() override
+    {
+        if (draw_hud_) draw_hud_();
+    }
+
+    virtual void OnSetGameState(DWORD GameState) override
+    {
+        if (set_game_state_) set_game_state_(GameState);
+    }
+
+    virtual void OnPulse() override
+    {
+        if (pulse_) pulse_();
+    }
+
+    virtual DWORD OnWriteChatColor(PCHAR Line, DWORD Color, DWORD Filter) override
+    {
+        if (write_chat_color_) return write_chat_color_(Line, Color, Filter);
+        return 0;
+    }
+
+    virtual DWORD OnIncomingChat(PCHAR Line, DWORD Color) override
+    {
+        if (incoming_chat_) return incoming_chat_(Line, Color);
+        return 0;
+    }
+
+    virtual void OnAddSpawn(PSPAWNINFO pNewSpawn) override
+    {
+        if (add_spawn_) add_spawn_(pNewSpawn);
+    }
+
+    virtual void OnRemoveSpawn(PSPAWNINFO pSpawn) override
+    {
+        if (remove_spawn_) remove_spawn_(pSpawn);
+    }
+
+    virtual void OnAddGroundItem(PGROUNDITEM pNewGroundItem) override
+    {
+        if (add_ground_item_) add_ground_item_(pNewGroundItem);
+    }
+
+    virtual void OnRemoveGroundItem(PGROUNDITEM pGroundItem) override
+    {
+        if (remove_ground_item_) remove_ground_item_(pGroundItem);
+    }
+
+    virtual void OnZoned() override
+    {
+        if (zoned_) zoned_();
+    }
+
+    virtual void OnBeginZone() override
+    {
+        if (begin_zone_) begin_zone_();
+    }
+
+    virtual void OnEndZone() override
+    {
+        if (end_zone_) end_zone_();
+    }
+
+private:
+    fMQInitializePlugin initialize_;
+    fMQShutdownPlugin shutdown_;
+    fMQZoned zoned_;
+    fMQWriteChatColor write_chat_color_;
+    fMQPulse pulse_;
+    fMQIncomingChat incoming_chat_;
+    fMQCleanUI clean_ui_;
+    fMQReloadUI reload_ui_;
+    fMQDrawHUD draw_hud_;
+    fMQSetGameState set_game_state_;
+    fMQSpawn add_spawn_;
+    fMQSpawn remove_spawn_;
+    fMQGroundItem add_ground_item_;
+    fMQGroundItem remove_ground_item_;
+    fMQBeginZone begin_zone_;
+    fMQEndZone end_zone_;
+    int capabilities_;
+};
+
+MQPLUGIN* CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename)
+{
+    MQPLUGIN* pPlugin = new MQPLUGIN;
+    pPlugin->bCustom = bCustom;
+    pPlugin->hModule = module;
+    strcpy_s(pPlugin->szFilename, szFilename);
+    pPlugin->fpVersion = 1.0;
+
+    // We'll need to determine what kind of plugin we are loading.
+    // New versions of the plugin interface export a function called "MQ2PluginFactory"
+    fMQPluginFactory factory = (fMQPluginFactory)GetProcAddress(module, "MQ2PluginFactory");
+    if (factory)
+    {
+        // new style plugin
+        pPlugin->plugin = factory();
+    }
+    else
+    {
+        // old style plugin.
+        pPlugin->plugin.reset(new LegacyPlugin(module)); // wtb std::make_unique!
+
+        // populate version
+        if (float* ftmp = (float*)GetProcAddress(module, "?MQ2Version@@3MA"))
+            pPlugin->fpVersion = *ftmp;
+    }
+
+    pPlugin->capabilities = pPlugin->plugin->GetCapabilities();
+
+    return pPlugin;
+}
+
+DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
 {
     CHAR Filename[MAX_PATH]={0};
 
     strcpy(Filename,pszFilename);
     strlwr(Filename);
     PCHAR Temp=strstr(Filename,".dll");
-	if (Temp)
+    if (Temp)
         Temp[0]=0;
-    if (!_stricmp(Filename,"mq2warp")) // ^_^
-    {
-        return 0;
-    }
     CHAR TheFilename[MAX_STRING]={0};
     sprintf(TheFilename,"%s.dll",Filename);
-	if(HMODULE hThemod = GetModuleHandle(TheFilename)) {
-		DebugSpew("LoadMQ2Plugin(0)(%s) already loaded",TheFilename);
-		return 2;
-	}
+    if(HMODULE hThemod = GetModuleHandle(TheFilename)) {
+        DebugSpew("LoadMQ2Plugin(0)(%s) already loaded",TheFilename);
+        return 2;
+    }
     CAutoLock Lock(&gPluginCS);
     DebugSpew("LoadMQ2Plugin(%s)",Filename);
 
     CHAR FullFilename[MAX_STRING]={0};
     sprintf(FullFilename,"%s\\%s.dll",gszINIPath,Filename);
 
-    if (!mq2mainstamp) {
-        mq2mainstamp = checkme((char*)GetModuleHandle("mq2main.dll"));
-    }
-	
-    HMODULE hmod=LoadLibrary(FullFilename);
+    HMODULE hmod = LoadLibrary(FullFilename);
     if (!hmod)
     {
-        DebugSpew("LoadMQ2Plugin(%s) Failed",Filename);
-        return 0;
-    }
-    if (mq2mainstamp > checkme((char*)hmod)) {
-        char tmpbuff[MAX_PATH];
-        sprintf(tmpbuff, "Please recompile %s -- it is out of date with respect to mq2main (%d>%d)", FullFilename, mq2mainstamp, checkme((char*)hmod));
-        DebugSpew(tmpbuff);
-        MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
-        FreeLibrary(hmod);
+        LPTSTR errorText = NULL;
+
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM
+            | FORMAT_MESSAGE_ALLOCATE_BUFFER
+            | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, GetLastError(),
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPTSTR)&errorText, 0, NULL);
+        if (errorText != NULL)
+        {
+            DebugSpew("LoadMQ2Plugin(%s) failed: %s", Filename, errorText);
+            LocalFree(errorText);
+
+            errorText = NULL;
+        }
+        else
+        {
+            DebugSpew("LoadMQ2Plugin(%s) Failed", Filename);
+        }
         return 0;
     }
 
+    if (!bForce)
+    {
+        if (!mq2mainstamp) {
+            mq2mainstamp = checkme((char*)GetModuleHandle("mq2main.dll"));
+        }
+        if (mq2mainstamp > checkme((char*)hmod)) {
+            char tmpbuff[MAX_PATH];
+            sprintf(tmpbuff, "Please recompile %s -- it is out of date with respect to mq2main (%d>%d)", FullFilename, mq2mainstamp, checkme((char*)hmod));
+            DebugSpew(tmpbuff);
+            MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
+            FreeLibrary(hmod);
+            return 0;
+        }
+    }
+
     PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
+    while (pPlugin)
     {
         if (hmod==pPlugin->hModule)
         {
@@ -104,67 +292,49 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename,BOOL bCustom)
         pPlugin=pPlugin->pNext;
     }
 
-    pPlugin = new MQPLUGIN;
-    memset(pPlugin,0,sizeof(MQPLUGIN));
-	pPlugin->bCustom=bCustom;
-    pPlugin->hModule=hmod;
-    strcpy(pPlugin->szFilename,Filename);
-    pPlugin->Initialize=(fMQInitializePlugin)GetProcAddress(hmod,"InitializePlugin");
-    pPlugin->Shutdown=(fMQShutdownPlugin)GetProcAddress(hmod,"ShutdownPlugin");
-    pPlugin->IncomingChat=(fMQIncomingChat)GetProcAddress(hmod,"OnIncomingChat");
-    pPlugin->Pulse=(fMQPulse)GetProcAddress(hmod,"OnPulse");
-    pPlugin->WriteChatColor=(fMQWriteChatColor)GetProcAddress(hmod,"OnWriteChatColor");
-    pPlugin->Zoned=(fMQZoned)GetProcAddress(hmod,"OnZoned");
-    pPlugin->CleanUI=(fMQCleanUI)GetProcAddress(hmod,"OnCleanUI");
-    pPlugin->ReloadUI=(fMQReloadUI)GetProcAddress(hmod,"OnReloadUI");
-    pPlugin->DrawHUD=(fMQDrawHUD)GetProcAddress(hmod,"OnDrawHUD");
-    pPlugin->SetGameState=(fMQSetGameState)GetProcAddress(hmod,"SetGameState");
-    pPlugin->AddSpawn=(fMQSpawn)GetProcAddress(hmod,"OnAddSpawn");
-    pPlugin->RemoveSpawn=(fMQSpawn)GetProcAddress(hmod,"OnRemoveSpawn");
-    pPlugin->AddGroundItem=(fMQGroundItem)GetProcAddress(hmod,"OnAddGroundItem");
-    pPlugin->RemoveGroundItem=(fMQGroundItem)GetProcAddress(hmod,"OnRemoveGroundItem");
-    pPlugin->BeginZone=(fMQBeginZone)GetProcAddress(hmod,"OnBeginZone"); 
-    pPlugin->EndZone=(fMQEndZone)GetProcAddress(hmod,"OnEndZone"); 
+    pPlugin = CreatePlugin(hmod, bCustom, Filename);
+    pPlugin->plugin->Initialize();
 
-    float *ftmp = (float*) GetProcAddress(hmod,"?MQ2Version@@3MA");
-    if (ftmp)
-		pPlugin->fpVersion = *ftmp;
-    else pPlugin->fpVersion = 1.0;
-
-    if (pPlugin->Initialize)
-        pPlugin->Initialize();
     PluginCmdSort();
-    if (pPlugin->SetGameState)
-        pPlugin->SetGameState(gGameState);
-    if (pPlugin->AddSpawn && gGameState==GAMESTATE_INGAME)
+
+    pPlugin->plugin->OnSetGameState(gGameState);
+
+    if (gGameState == GAMESTATE_INGAME)
     {
-        PSPAWNINFO pSpawn=(PSPAWNINFO)pSpawnList;
-        while(pSpawn)
+        // If the plugin wants spawns, give them spawns
+        if ((pPlugin->capabilities & PLUGIN_WANTS_SPAWNS))
         {
-            pPlugin->AddSpawn(pSpawn);
-            pSpawn=pSpawn->pNext;
+            PSPAWNINFO pSpawn = (PSPAWNINFO)pSpawnList;
+            while (pSpawn)
+            {
+                pPlugin->plugin->OnAddSpawn(pSpawn);
+                pSpawn = pSpawn->pNext;
+            }
         }
-    }
-    if (pPlugin->AddGroundItem && gGameState==GAMESTATE_INGAME)
-    {
-        PGROUNDITEM pItem=*(PGROUNDITEM*)pItemList;
-        while(pItem)
+
+        // If the plugin wants grounditems, give them grounditems
+        if ((pPlugin->capabilities & PLUGIN_WANTS_GROUNDITEMS))
         {
-            pPlugin->AddGroundItem(pItem);
-            pItem=pItem->pNext;
+            PGROUNDITEM pItem = *(PGROUNDITEM*)pItemList;
+            while (pItem)
+            {
+                pPlugin->plugin->OnAddGroundItem(pItem);
+                pItem = pItem->pNext;
+            }
         }
     }
 
-    pPlugin->pLast=0;
-    pPlugin->pNext=pPlugins;
+    pPlugin->pLast = 0;
+    pPlugin->pNext = pPlugins;
     if (pPlugins)
-        pPlugins->pLast=pPlugin;
-    pPlugins=pPlugin;
+        pPlugins->pLast = pPlugin;
+    pPlugins = pPlugin;
 
     sprintf(FullFilename,"%s-AutoExec",Filename);
     LoadCfgFile(FullFilename,false);
     return 1;
 }
+
 //what is this?
 //Well, microsoft decided that it was a grat idea to SILENTLY add dlls that crash to 2 registrykeys
 //since mq2 uses plugins, there is no telling which will crash now and then
@@ -248,16 +418,16 @@ BOOL UnloadMQ2Plugin(const PCHAR pszFilename)
             if (pPlugin->pNext)
                 pPlugin->pNext->pLast=pPlugin->pLast;
 
-            if (pPlugin->CleanUI)
-                pPlugin->CleanUI();
-            if (pPlugin->Shutdown)
-                pPlugin->Shutdown();
+            pPlugin->plugin->OnCleanUI();
+            pPlugin->plugin->Shutdown();
 
-			//DeleteLayers(pPlugin);
-			if (pFreeLibrary)
-				pFreeLibrary(pPlugin->hModule);
-			else
-				FreeLibrary(pPlugin->hModule);
+            //DeleteLayers(pPlugin);
+
+            if (pFreeLibrary)
+                pFreeLibrary(pPlugin->hModule);
+            else
+                FreeLibrary(pPlugin->hModule);
+
             delete pPlugin;
             return 1;
         }
@@ -407,10 +577,7 @@ VOID WriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
 	PMQPLUGIN pPlugin=pPlugins;
 	while(pPlugin)
 	{
-		if (pPlugin->WriteChatColor)
-		{
-			pPlugin->WriteChatColor(Line,Color,Filter);
-		}
+		pPlugin->plugin->OnWriteChatColor(Line,Color,Filter);
 		pPlugin=pPlugin->pNext;
 	}
     ExitMQ2Benchmark(bmWriteChatColor);
@@ -428,10 +595,7 @@ BOOL PluginsIncomingChat(PCHAR Line, DWORD Color)
     BOOL Ret=0;
     while(pPlugin)
     {
-        if (pPlugin->IncomingChat)
-        {
-            Ret|=pPlugin->IncomingChat(Line,Color);
-        }
+        Ret |= pPlugin->plugin->OnIncomingChat(Line,Color);
         pPlugin=pPlugin->pNext;
     }
     return Ret;
@@ -446,10 +610,9 @@ VOID PulsePlugins()
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->Pulse)
+        if (pPlugin->capabilities & PLUGIN_WANTS_PULSE)
         {
-            //DebugSpew("%s->Pulse()",pPlugin->szFilename);
-            pPlugin->Pulse();
+            pPlugin->plugin->OnPulse();
         }
 		if(pPlugin && pPlugin->pNext) {
 			pPlugin=pPlugin->pNext;
@@ -468,11 +631,7 @@ VOID PluginsZoned()
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->Zoned)
-        {
-            DebugSpew("%s->Zoned()",pPlugin->szFilename);
-            pPlugin->Zoned();
-        }
+        pPlugin->plugin->OnZoned();
         pPlugin=pPlugin->pNext;
     }
     char szTemp[256];
@@ -490,11 +649,7 @@ VOID PluginsCleanUI()
     DeleteMQ2NewsWindow();
     while(pPlugin)
     {
-        if (pPlugin->CleanUI)
-        {
-            DebugSpew("%s->CleanUI()",pPlugin->szFilename);
-            pPlugin->CleanUI();
-        }
+        pPlugin->plugin->OnCleanUI();
         pPlugin=pPlugin->pNext;
     }
 }
@@ -508,11 +663,7 @@ VOID PluginsReloadUI()
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->ReloadUI)
-        {
-            DebugSpew("%s->ReloadUI()",pPlugin->szFilename);
-            pPlugin->ReloadUI();
-        }
+        pPlugin->plugin->OnReloadUI();
         pPlugin=pPlugin->pNext;
     }
 }
@@ -540,16 +691,16 @@ VOID PluginsSetGameState(DWORD GameState)
             CharSelect=false;
             CHAR szBuffer[MAX_STRING]={0};
 
-DebugSpew("PluginsSetGameState( %s server)",EQADDR_SERVERNAME);
+            DebugSpew("PluginsSetGameState( %s server)",EQADDR_SERVERNAME);
             if (PCHARINFO pCharInfo=GetCharInfo())
             {
-DebugSpew("PluginsSetGameState( %s name)",pCharInfo->Name);
+                DebugSpew("PluginsSetGameState( %s name)",pCharInfo->Name);
                 sprintf(szBuffer,"%s_%s",EQADDR_SERVERNAME,pCharInfo->Name);
                 LoadCfgFile(szBuffer,false);
             }
             if (PCHARINFO2 pCharInfo2=GetCharInfo2())
             {
-DebugSpew("PluginsSetGameState( %d class)",pCharInfo2->Class);
+                DebugSpew("PluginsSetGameState( %d class)",pCharInfo2->Class);
                 sprintf(szBuffer,"%s",GetClassDesc(pCharInfo2->Class));
                 LoadCfgFile(szBuffer,false);
             }
@@ -573,11 +724,7 @@ DebugSpew("PluginsSetGameState( %d class)",pCharInfo2->Class);
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->SetGameState)
-        {
-            DebugSpew("%s->SetGameState(%d)",pPlugin->szFilename,GameState);
-            pPlugin->SetGameState(GameState);
-        }
+        pPlugin->plugin->OnSetGameState(GameState);
         pPlugin=pPlugin->pNext;
     }
 }
@@ -591,9 +738,9 @@ VOID PluginsDrawHUD()
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->DrawHUD)
+        if (pPlugin->capabilities & PLUGIN_WANTS_DRAWHUD)
         {
-            pPlugin->DrawHUD();
+            pPlugin->plugin->OnDrawHUD();
         }
         pPlugin=pPlugin->pNext;
     }
@@ -615,9 +762,9 @@ VOID PluginsAddSpawn(PSPAWNINFO pNewSpawn)
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->AddSpawn)
+        if (pPlugin->capabilities & PLUGIN_WANTS_SPAWNS)
         {
-            pPlugin->AddSpawn(pNewSpawn);
+            pPlugin->plugin->OnAddSpawn(pNewSpawn);
         }
         pPlugin=pPlugin->pNext;
     }
@@ -633,9 +780,9 @@ VOID PluginsRemoveSpawn(PSPAWNINFO pSpawn)
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->RemoveSpawn)
+        if (pPlugin->capabilities & PLUGIN_WANTS_SPAWNS)
         {
-            pPlugin->RemoveSpawn(pSpawn);
+            pPlugin->plugin->OnRemoveSpawn(pSpawn);
         }
         pPlugin=pPlugin->pNext;
     }
@@ -651,9 +798,9 @@ VOID PluginsAddGroundItem(PGROUNDITEM pNewGroundItem)
     DebugSpew("PluginsAddGroundItem(%s) %.1f,%.1f,%.1f",pNewGroundItem->Name,pNewGroundItem->X,pNewGroundItem->Y,pNewGroundItem->Z);
     while(pPlugin)
     {
-        if (pPlugin->AddGroundItem)
+        if (pPlugin->capabilities & PLUGIN_WANTS_GROUNDITEMS)
         {
-            pPlugin->AddGroundItem(pNewGroundItem);
+            pPlugin->plugin->OnAddGroundItem(pNewGroundItem);
         }
         pPlugin=pPlugin->pNext;
     }
@@ -668,9 +815,9 @@ VOID PluginsRemoveGroundItem(PGROUNDITEM pGroundItem)
     PMQPLUGIN pPlugin=pPlugins;
     while(pPlugin)
     {
-        if (pPlugin->RemoveGroundItem)
+        if (pPlugin->capabilities & PLUGIN_WANTS_GROUNDITEMS)
         {
-            pPlugin->RemoveGroundItem(pGroundItem);
+            pPlugin->plugin->OnRemoveGroundItem(pGroundItem);
         }
         pPlugin=pPlugin->pNext;
     }
@@ -686,11 +833,7 @@ VOID PluginsBeginZone()
     PMQPLUGIN pPlugin=pPlugins; 
     while(pPlugin) 
     { 
-        if (pPlugin->BeginZone) 
-        { 
-            DebugSpew("%s->BeginZone()",pPlugin->szFilename); 
-            pPlugin->BeginZone(); 
-        } 
+        pPlugin->plugin->OnBeginZone();
         pPlugin=pPlugin->pNext; 
     } 
 } 
@@ -705,14 +848,9 @@ VOID PluginsEndZone()
     PMQPLUGIN pPlugin=pPlugins; 
     while(pPlugin) 
     { 
-        if (pPlugin->EndZone) 
-        { 
-            DebugSpew("%s->EndZone()",pPlugin->szFilename); 
-            pPlugin->EndZone(); 
-        } 
+        pPlugin->plugin->OnEndZone();
         pPlugin=pPlugin->pNext; 
     } 
-	//HideDoCommand(((PSPAWNINFO)pLocalPlayer),"/loadcfg zoned",TRUE);
     LoadCfgFile("zoned",true);
     LoadCfgFile(((PZONEINFO)pZoneInfo)->ShortName,false);
 } 

@@ -38,7 +38,6 @@ namespace MQ2Prototypes
 #ifndef EMU
 	typedef BOOL(__cdecl *fEQToggleKeyRingItem)(BOOL RingType,PCONTENTS*itemptr, DWORD listindex);//0 is mounts and 1 is illusions
 #endif
-#define DoWarp                 0
 
 	/* PLUGINS */
 	typedef DWORD(__cdecl *fMQWriteChatColor)(PCHAR Line, DWORD Color, DWORD Filter);
@@ -57,3 +56,114 @@ namespace MQ2Prototypes
 	typedef VOID(__cdecl *fMQEndZone)(VOID);
 };
 using namespace MQ2Prototypes;
+
+
+enum PLUGIN_CAPABILITIES
+{
+	PLUGIN_WANTS_PULSE = 0x0001,
+	PLUGIN_WANTS_DRAWHUD = 0x0002,
+	PLUGIN_WANTS_SPAWNS = 0x0004,
+	PLUGIN_WANTS_GROUNDITEMS = 0x0008,
+
+	PLUGIN_CAPABILITIES_DEFAULTS = PLUGIN_WANTS_PULSE
+	| PLUGIN_WANTS_DRAWHUD
+	| PLUGIN_WANTS_SPAWNS
+	| PLUGIN_WANTS_GROUNDITEMS
+};
+
+// basic interface for plugins
+class IPlugin
+{
+public:
+	virtual ~IPlugin() {}
+
+	// needs to be a version quad or something of that sort
+	virtual int GetVersion() const = 0;
+
+	// returns bitfield representing plugin capabilities
+	virtual int GetCapabilities() const { return PLUGIN_CAPABILITIES_DEFAULTS; };
+
+	//----------------------------------------------------------------------------
+	// notifications to the plugin. These all have the same behavior as the more
+	// traditional plugin functions.
+
+	// Called once, when the plugin is to initialize
+	virtual void Initialize() = 0;
+
+	// Called once, when the plugin is to shut down
+	virtual void Shutdown() = 0;
+
+	// Called once directly before shutdown of the ui system, and also
+	// every time the game calls CDisplay::CleanGameUI()
+	virtual void OnCleanUI() {}
+
+	// Called once directly after the game ui is reloaded, after issuing /loadskin
+	virtual void OnReloadUI() {}
+
+	// Called every frame that the "HUD" is drawn -- e.g. net status / packet loss bar
+	virtual void OnDrawHUD() {}
+
+	// Called once directly after initialization, and then every time the gamestate changes.
+	virtual void OnSetGameState(DWORD GameState) {}
+
+	// This is called every time MQ pulses
+	virtual void OnPulse() {}
+
+	// This is called every time WriteChatColor is called by MQ2Main or any plugin,
+	// IGNORING FILTERS, IF YOU NEED THEM MAKE SURE TO IMPLEMENT THEM. IF YOU DONT
+	// CALL CEverQuest::dsp_chat MAKE SURE TO IMPLEMENT EVENTS HERE (for chat plugins)
+	virtual DWORD OnWriteChatColor(PCHAR Line, DWORD Color, DWORD Filter) { return 0; }
+
+	// This is called every time EQ shows a line of chat with CEverQuest::dsp_chat,
+	// but after MQ filters and chat events are taken care of.
+	virtual DWORD OnIncomingChat(PCHAR Line, DWORD Color) { return 0; }
+
+	// This is called each time a spawn is added to a zone (inserted into EQ's list of spawns),
+	// or for each existing spawn when a plugin first initializes
+	// NOTE: When you zone, these will come BEFORE OnZoned
+	virtual void OnAddSpawn(PSPAWNINFO pNewSpawn) {}
+
+	// This is called each time a spawn is removed from a zone (removed from EQ's list of spawns).
+	// It is NOT called for each existing spawn when a plugin shuts down.
+	virtual void OnRemoveSpawn(PSPAWNINFO pSpawn) {}
+
+	// This is called each time a ground item is added to a zone
+	// or for each existing ground item when a plugin first initializes
+	// NOTE: When you zone, these will come BEFORE OnZoned
+	virtual void OnAddGroundItem(PGROUNDITEM pNewGroundItem) {}
+
+	// This is called each time a ground item is removed from a zone.
+	// It is NOT called for each existing ground item when a plugin shuts down.
+	virtual void OnRemoveGroundItem(PGROUNDITEM pGroundItem) {}
+
+	// Called after entering a new zone. This is an old API, prefer to use
+	// OnBeginZone and OnEndZone
+	virtual void OnZoned() {}
+
+	// This called before you actually leave the zone. Your character info, zone info,
+	// and spawn table info is still valid for the previous zone.
+	virtual void OnBeginZone() {}
+
+	// This is called immediately after zoning, where zone info, character info, etc
+	// has already been updated by the server.
+	virtual void OnEndZone() {}
+};
+
+struct MQPLUGIN
+{
+	unique_ptr<IPlugin> plugin;
+
+	char szFilename[MAX_PATH];
+	HMODULE hModule;
+	BOOL bCustom;
+	int capabilities;
+
+	// In new style plugins, this is always 1.0. use IPlugin::GetVersion instead
+	float fpVersion;
+
+	MQPLUGIN* pLast;
+	MQPLUGIN* pNext;
+};
+typedef MQPLUGIN* PMQPLUGIN;
+
+typedef unique_ptr<IPlugin>(__cdecl *fMQPluginFactory)();
