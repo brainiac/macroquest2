@@ -1518,6 +1518,8 @@ TLO(dataInvSlot)
 }
 
 #ifndef ISXEQ
+extern vector<unique_ptr<MQPLUGIN>> g_plugins;
+
 TLO(dataPlugin)
 {
 	if (!ISINDEX())
@@ -1525,31 +1527,21 @@ TLO(dataPlugin)
 	if (ISNUMBER())
 	{
 		unsigned long N = GETNUMBER() - 1;
-		PMQPLUGIN pPlugin = pPlugins;
-		while (N)
-		{
-			pPlugin = pPlugin->pNext;
-			if (!pPlugin)
-				return false;
-			N--;
-		}
-		Ret.Ptr = pPlugin;
+
+		if (N >= g_plugins.size())
+			return false;
+		Ret.Ptr = g_plugins[N].get();
 		Ret.Type = pPluginType;
 		return true;
 	}
 	else
 	{
 		// name
-		PMQPLUGIN pPlugin = pPlugins;
-		while (pPlugin)
+		if (PMQPLUGIN pPlugin = FindPlugin(szIndex))
 		{
-			if (!_stricmp(pPlugin->szFilename, szIndex))
-			{
-				Ret.Ptr = pPlugin;
-				Ret.Type = pPluginType;
-				return true;
-			}
-			pPlugin = pPlugin->pNext;
+			Ret.Ptr = pPlugin;
+			Ret.Type = pPluginType;
+			return true;
 		}
 	}
 	return false;
