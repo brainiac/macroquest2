@@ -60,15 +60,13 @@ using namespace MQ2Prototypes;
 
 enum PLUGIN_CAPABILITIES
 {
-	PLUGIN_WANTS_PULSE = 0x0001,
-	PLUGIN_WANTS_DRAWHUD = 0x0002,
-	PLUGIN_WANTS_SPAWNS = 0x0004,
-	PLUGIN_WANTS_GROUNDITEMS = 0x0008,
+	// optimization so that we don't need to initialize spawns for
+	// plugins that don't need to know about them.
+	PLUGIN_WANTS_SPAWNS = 0x0001,
+	PLUGIN_WANTS_GROUNDITEMS = 0x0002,
 
-	PLUGIN_CAPABILITIES_DEFAULTS = PLUGIN_WANTS_PULSE
-	| PLUGIN_WANTS_DRAWHUD
-	| PLUGIN_WANTS_SPAWNS
-	| PLUGIN_WANTS_GROUNDITEMS
+	PLUGIN_CAPABILITIES_DEFAULTS = PLUGIN_WANTS_SPAWNS
+		| PLUGIN_WANTS_GROUNDITEMS
 };
 
 // basic interface for plugins
@@ -147,6 +145,13 @@ public:
 	// This is called immediately after zoning, where zone info, character info, etc
 	// has already been updated by the server.
 	virtual void OnEndZone() {}
+
+	// temp/internal: do not call this. This is here for the plugin system. TODO: Improve InvokePlugins
+	// so this can be removed.
+	void OnIncomingChatHelper(PCHAR Line, DWORD Color, BOOL& Ret)
+	{
+		Ret |= OnIncomingChat(Line, Color);
+	}
 };
 
 struct MQPLUGIN
@@ -160,6 +165,9 @@ struct MQPLUGIN
 
 	// In new style plugins, this is always 1.0. use IPlugin::GetVersion instead
 	float fpVersion;
+
+	// for tracking removal of plugins during iteration
+	bool bRemoved;
 
 	MQPLUGIN* pLast;
 	MQPLUGIN* pNext;

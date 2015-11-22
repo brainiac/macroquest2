@@ -2913,6 +2913,8 @@ VOID DisplayLoginName(PSPAWNINFO pChar, PCHAR szLine)
 }
 
 #ifndef ISXEQ_LEGACY
+extern vector<unique_ptr<MQPLUGIN>> g_plugins;
+
 // ***************************************************************************
 // Function:      PluginCommand
 // Description:   Our /plugin command.
@@ -2925,27 +2927,21 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 	GetArg(szName, szLine, 1);
 	szCommand = GetNextArg(szLine);
 	if (!_stricmp(szName, "list")) {
-		PMQPLUGIN pLoop = pPlugins;
-		DWORD Count = 0;
 		WriteChatColor("Active Plugins", USERCOLOR_WHO);
 		WriteChatColor("--------------------------", USERCOLOR_WHO);
-		while (pLoop) {
-			sprintf(szName, "%s", pLoop->szFilename);
-			WriteChatColor(szName, USERCOLOR_WHO);
-			Count++;
-			pLoop = pLoop->pNext;
-		}
-		if (Count == 0) {
+		if (g_plugins.empty()) {
 			WriteChatColor("No Plugins defined.", USERCOLOR_WHO);
-		}
-		else {
+		} else {
+			for (auto iter = g_plugins.begin(); iter != g_plugins.end(); ++iter)
+				WriteChatColor((*iter)->szFilename, USERCOLOR_WHO);
+			DWORD Count = g_plugins.size();
 			sprintf(szName, "%d Plugin%s displayed.", Count, (Count == 1) ? "" : "s");
 			WriteChatColor(szName, USERCOLOR_WHO);
 		}
 		return;
 	}
 	if (szName[0] == 0) {
-		SyntaxError("Usage: /Plugin name [unload] [noauto], or /Plugin list");
+		SyntaxError("Usage: /plugin name [unload] [noauto] [force] [nocheck], or /plugin list");
 		return;
 	}
 

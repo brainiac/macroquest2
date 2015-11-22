@@ -44,7 +44,81 @@ DWORD checkme(char *module)
     return pf->TimeDateStamp;
 }
 
+const char* MQ2Runtime = MQ2RUNTIMEVERSION();
+
 static unsigned int mq2mainstamp = 0;
+
+// The authoritative list of plugins
+vector<unique_ptr<MQPLUGIN>> g_plugins;
+
+static bool g_iteratingPlugins = false;
+
+PMQPLUGIN FindPlugin(const char* pluginName)
+{
+    CAutoLock Lock(&gPluginCS);
+
+    auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
+        [pluginName](const unique_ptr<MQPLUGIN>& plugin)
+    {
+        return _stricmp(plugin->szFilename, pluginName) == 0;
+    });
+
+    return it == g_plugins.end() ? nullptr : it->get();
+}
+
+PMQPLUGIN FindPluginByHandle(HMODULE module)
+{
+    CAutoLock Lock(&gPluginCS);
+
+    auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
+        [module](const unique_ptr<MQPLUGIN>& plugin)
+    {
+        return plugin->hModule == module;
+    });
+
+    return it == g_plugins.end() ? nullptr : it->get();
+}
+
+
+template <typename T, typename... Args>
+inline static void InvokePlugins(const T& func, Args&&... args)
+{
+    CAutoLock Lock(&gPluginCS);
+    g_iteratingPlugins = true;
+
+    for (auto iter = g_plugins.begin(); iter != g_plugins.end(); ++iter)
+    {
+        const auto& plugin = *iter;
+
+        if (!plugin->bRemoved)
+            (plugin->plugin.get()->*func)(std::forward<Args>(args)...);
+    }
+
+    g_iteratingPlugins = false;
+}
+
+static void AddPluginToLinkedList(PMQPLUGIN pPlugin)
+{
+    CAutoLock Lock(&gPluginCS);
+
+    pPlugin->pLast = 0;
+    pPlugin->pNext = pPlugins;
+    if (pPlugins)
+        pPlugins->pLast = pPlugin;
+    pPlugins = pPlugin;
+}
+
+static void RemovePluginFromLinkedList(PMQPLUGIN pPlugin)
+{
+    CAutoLock Lock(&gPluginCS);
+
+    if (pPlugin->pLast)
+        pPlugin->pLast->pNext = pPlugin->pNext;
+    else
+        pPlugins = pPlugin->pNext;
+    if (pPlugin->pNext)
+        pPlugin->pNext->pLast = pPlugin->pLast;
+}
 
 // A LegacyPlugin is a plugin that implements the old style of plugin.
 // This will redirect all calls to the global exports of the dll
@@ -71,10 +145,6 @@ public:
         begin_zone_ = (fMQBeginZone)GetProcAddress(hmod, "OnBeginZone");
         end_zone_ = (fMQEndZone)GetProcAddress(hmod, "OnEndZone");
 
-        if (pulse_)
-            capabilities_ |= PLUGIN_WANTS_PULSE;
-        if (draw_hud_)
-            capabilities_ |= PLUGIN_WANTS_DRAWHUD;
         if (add_spawn_ || remove_spawn_)
             capabilities_ |= PLUGIN_WANTS_SPAWNS;
         if (add_ground_item_ || remove_ground_item_)
@@ -187,13 +257,14 @@ private:
     int capabilities_;
 };
 
-MQPLUGIN* CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename)
+unique_ptr<MQPLUGIN> CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename)
 {
-    MQPLUGIN* pPlugin = new MQPLUGIN;
+    unique_ptr<MQPLUGIN> pPlugin(new MQPLUGIN);
     pPlugin->bCustom = bCustom;
     pPlugin->hModule = module;
     strcpy_s(pPlugin->szFilename, szFilename);
     pPlugin->fpVersion = 1.0;
+    pPlugin->bRemoved = false;
 
     // We'll need to determine what kind of plugin we are loading.
     // New versions of the plugin interface export a function called "MQ2PluginFactory"
@@ -279,20 +350,32 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
         }
     }
 
-    PMQPLUGIN pPlugin=pPlugins;
-    while (pPlugin)
+    if (PMQPLUGIN pPlugin = FindPluginByHandle(hmod))
     {
-        if (hmod==pPlugin->hModule)
-        {
-            DebugSpew("LoadMQ2Plugin(%s) already loaded",Filename);
-            // LoadLibrary count must match FreeLibrary count for unloading to work.
-            FreeLibrary(hmod);
-            return 2; // already loaded
-        }
-        pPlugin=pPlugin->pNext;
+        DebugSpew("LoadMQ2Plugin(%s) already loaded", Filename);
+
+        // LoadLibrary count must match FreeLibrary count for unloading to work.
+        FreeLibrary(hmod);
+        return 2; // already loaded
     }
 
-    pPlugin = CreatePlugin(hmod, bCustom, Filename);
+    // Validate the plugin
+    const char** ppRuntimeStr = (const char**)GetProcAddress(hmod, "MQ2Runtime");
+    if (!ppRuntimeStr || strcmp(*ppRuntimeStr, MQ2Runtime) != 0)
+    {
+        char tmpbuff[MAX_PATH];
+        if (!ppRuntimeStr)
+            sprintf_s(tmpbuff, "%s needs to be updated. It does not specify the compiler version.", FullFilename);
+        else
+            sprintf_s(tmpbuff, "%s needs to be updated. The compiler version does not match!\n\nExpected: %s\nActual: %s",
+                FullFilename, MQ2Runtime, *ppRuntimeStr);
+        DebugSpew(tmpbuff);
+        MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
+        FreeLibrary(hmod);
+        return 0;
+    }
+
+    unique_ptr<MQPLUGIN> pPlugin = CreatePlugin(hmod, bCustom, Filename);
     pPlugin->plugin->Initialize();
 
     PluginCmdSort();
@@ -324,11 +407,8 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
         }
     }
 
-    pPlugin->pLast = 0;
-    pPlugin->pNext = pPlugins;
-    if (pPlugins)
-        pPlugins->pLast = pPlugin;
-    pPlugins = pPlugin;
+    AddPluginToLinkedList(pPlugin.get());
+    g_plugins.emplace_back(std::move(pPlugin));
 
     sprintf(FullFilename,"%s-AutoExec",Filename);
     LoadCfgFile(FullFilename,false);
@@ -376,6 +456,21 @@ typedef BOOL(WINAPI *fFreeLibrary)(HMODULE);
 static fFreeLibrary pFreeLibrary = 0;
 static fLdrGetProcedureAddress pLdrGetProcedureAddress = 0;
 
+static void FreeMQ2Plugin(MQPLUGIN* pPlugin)
+{
+    RemovePluginFromLinkedList(pPlugin);
+
+    pPlugin->plugin->OnCleanUI();
+    pPlugin->plugin->Shutdown();
+
+    //DeleteLayers(pPlugin);
+
+    if (pFreeLibrary)
+        pFreeLibrary(pPlugin->hModule);
+    else
+        FreeLibrary(pPlugin->hModule);
+}
+
 BOOL UnloadMQ2Plugin(const PCHAR pszFilename)
 {
     DebugSpew("UnloadMQ2Plugin");
@@ -406,76 +501,56 @@ BOOL UnloadMQ2Plugin(const PCHAR pszFilename)
 			//pFreeLibrary = (fFreeLibrary)addr;
 		}
 	}*/
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
+
+    PMQPLUGIN pPlugin = nullptr;
+    auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
+        [pszFilename](const unique_ptr<MQPLUGIN>& plugin)
     {
-        if (!_stricmp(Filename,pPlugin->szFilename))
-        {
-            if (pPlugin->pLast)
-                pPlugin->pLast->pNext=pPlugin->pNext;
-            else
-                pPlugins=pPlugin->pNext;
-            if (pPlugin->pNext)
-                pPlugin->pNext->pLast=pPlugin->pLast;
+        return _stricmp(plugin->szFilename, pszFilename) == 0;
+    });
 
-            pPlugin->plugin->OnCleanUI();
-            pPlugin->plugin->Shutdown();
+    if (it != g_plugins.end())
+    {
+        pPlugin = it->get();
+        FreeMQ2Plugin(pPlugin);
 
-            //DeleteLayers(pPlugin);
-
-            if (pFreeLibrary)
-                pFreeLibrary(pPlugin->hModule);
-            else
-                FreeLibrary(pPlugin->hModule);
-
-            delete pPlugin;
-            return 1;
-        }
-        pPlugin=pPlugin->pNext;
+        g_plugins.erase(it);
+        return 1;
     }
 
     return 0;
 }
 
-VOID RewriteMQ2Plugins(VOID)
+VOID RewriteMQ2Plugins()
 {
     CAutoLock Lock(&gPluginCS);
-	CHAR PluginList[MAX_STRING*10] = {0};
-    CHAR szBuffer[MAX_STRING] = {0};
-    CHAR MainINI[MAX_STRING] = {0};
-    sprintf(MainINI,"%s\\macroquest.ini",gszINIPath);
-	DWORD dwAttrs = 0,bChangedfileattribs = 0;
-	if ((dwAttrs = GetFileAttributes(MainINI))!=INVALID_FILE_ATTRIBUTES) {
-		if(dwAttrs & FILE_ATTRIBUTE_READONLY) {
-			bChangedfileattribs = 1;
-			SetFileAttributes(MainINI,FILE_ATTRIBUTE_NORMAL);
-		}
-	}
-    GetPrivateProfileString("Plugins",NULL,"",PluginList,MAX_STRING*10,MainINI);
+    CHAR PluginList[MAX_STRING * 10] = { 0 };
+    CHAR szBuffer[MAX_STRING] = { 0 };
+    CHAR MainINI[MAX_STRING] = { 0 };
+    sprintf(MainINI, "%s\\macroquest.ini", gszINIPath);
+    DWORD dwAttrs = 0, bChangedfileattribs = 0;
+    if ((dwAttrs = GetFileAttributes(MainINI)) != INVALID_FILE_ATTRIBUTES) {
+        if (dwAttrs & FILE_ATTRIBUTE_READONLY) {
+            bChangedfileattribs = 1;
+            SetFileAttributes(MainINI, FILE_ATTRIBUTE_NORMAL);
+        }
+    }
+    GetPrivateProfileString("Plugins", NULL, "", PluginList, MAX_STRING * 10, MainINI);
     PCHAR pPluginList = PluginList;
-	BOOL loadvalue = 0;
-    while (pPluginList[0]!=0) {
-		WritePrivateProfileString("Plugins",pPluginList,"0",gszINIFilename);
-        pPluginList+=strlen(pPluginList)+1;
+    BOOL loadvalue = 0;
+    while (pPluginList[0] != 0) {
+        WritePrivateProfileString("Plugins", pPluginList, "0", gszINIFilename);
+        pPluginList += strlen(pPluginList) + 1;
     }
-    PMQPLUGIN pLoop = pPlugins;
-    if (!pLoop) {
-		if(bChangedfileattribs) {
-			SetFileAttributes(MainINI,dwAttrs);
-		}
-        return;
-	}
-    // start from the end, we're writing this the order they were added.
-    while (pLoop->pNext)
-        pLoop=pLoop->pNext; 
-    while (pLoop) {
-		if(!pLoop->bCustom)
-			WritePrivateProfileString("Plugins",pLoop->szFilename,"1",gszINIFilename);
-        pLoop = pLoop->pLast;
+
+    std::for_each(g_plugins.begin(), g_plugins.end(), [](const unique_ptr<MQPLUGIN>& plugin) {
+        if (!plugin->bCustom)
+            WritePrivateProfileString("Plugins", plugin->szFilename, "1", gszINIFilename);
+    });
+
+    if (bChangedfileattribs) {
+        SetFileAttributes(MainINI, dwAttrs);
     }
-	if(bChangedfileattribs) {
-		SetFileAttributes(MainINI,dwAttrs);
-	}
 }
 
 VOID InitializeMQ2Plugins()
@@ -534,24 +609,22 @@ VOID InitializeMQ2Plugins()
 VOID UnloadMQ2Plugins()
 {
     CAutoLock Lock(&gPluginCS);
-    while(pPlugins)
+
+    std::for_each(g_plugins.begin(), g_plugins.end(),
+        [](const unique_ptr<MQPLUGIN>& plugin)
     {
-        DebugSpew("%s->Unload()",pPlugins->szFilename);
-        UnloadMQ2Plugin(pPlugins->szFilename);
-    }
+        DebugSpew("%s->Unload()", plugin->szFilename);
+        FreeMQ2Plugin(plugin.get());
+    });
+
+    g_plugins.clear();
 }
 
 VOID ShutdownMQ2Plugins()
 {
-    bPluginCS=0;
-    {
-        CAutoLock Lock(&gPluginCS);
-        while(pPlugins)
-        {
-            DebugSpew("%s->Unload()",pPlugins->szFilename);
-            UnloadMQ2Plugin(pPlugins->szFilename);
-        }
-    }
+    bPluginCS = 0;
+    UnloadMQ2Plugins();
+
     Sleep(50); // fixes crash on Windows 7 (Vista too?) in RtlpWaitOnCriticalSection
     DeleteCriticalSection(&gPluginCS);
 }
@@ -565,21 +638,17 @@ VOID WriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
     PluginDebug("Begin WriteChatColor()");
     EnterMQ2Benchmark(bmWriteChatColor);
 
-	if(size_t len = strlen(Line)) {
-		if(char *PlainText = (char*)LocalAlloc(LPTR,len+1)) {
-			StripMQChat(Line,PlainText);
-			CheckChatForEvent(PlainText);
-			LocalFree(PlainText);
-		}
-		DebugSpew("WriteChatColor(%s)",Line);
-	}
-	CAutoLock Lock(&gPluginCS);
-	PMQPLUGIN pPlugin=pPlugins;
-	while(pPlugin)
-	{
-		pPlugin->plugin->OnWriteChatColor(Line,Color,Filter);
-		pPlugin=pPlugin->pNext;
-	}
+    if (size_t len = strlen(Line)) {
+        if (char *PlainText = (char*)LocalAlloc(LPTR, len + 1)) {
+            StripMQChat(Line, PlainText);
+            CheckChatForEvent(PlainText);
+            LocalFree(PlainText);
+        }
+        DebugSpew("WriteChatColor(%s)", Line);
+    }
+
+    InvokePlugins(&IPlugin::OnWriteChatColor, Line, Color, Filter);
+
     ExitMQ2Benchmark(bmWriteChatColor);
 }
 
@@ -588,16 +657,12 @@ BOOL PluginsIncomingChat(PCHAR Line, DWORD Color)
     PluginDebug("PluginsIncomingChat()");
     if (!bPluginCS)
         return 0;
-    if(!Line[0])
+    if (!Line[0])
         return 0;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    BOOL Ret=0;
-    while(pPlugin)
-    {
-        Ret |= pPlugin->plugin->OnIncomingChat(Line,Color);
-        pPlugin=pPlugin->pNext;
-    }
+
+    BOOL Ret = 0;
+    InvokePlugins(&IPlugin::OnIncomingChatHelper, Line, Color, Ret);
+
     return Ret;
 }
 
@@ -606,20 +671,8 @@ VOID PulsePlugins()
     PluginDebug("PulsePlugins()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        if (pPlugin->capabilities & PLUGIN_WANTS_PULSE)
-        {
-            pPlugin->plugin->OnPulse();
-        }
-		if(pPlugin && pPlugin->pNext) {
-			pPlugin=pPlugin->pNext;
-		} else {
-			pPlugin=0;
-		}
-    }    
+
+    InvokePlugins(&IPlugin::OnPulse);
 }
 
 VOID PluginsZoned()
@@ -627,13 +680,9 @@ VOID PluginsZoned()
     PluginDebug("PluginsZoned()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        pPlugin->plugin->OnZoned();
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnZoned);
+
     char szTemp[256];
     sprintf(szTemp, "You have entered %s.", ((PZONEINFO)pZoneInfo)->LongName);
     CheckChatForEvent(szTemp);
@@ -644,14 +693,10 @@ VOID PluginsCleanUI()
     PluginDebug("PluginsCleanUI()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
+
     DeleteMQ2NewsWindow();
-    while(pPlugin)
-    {
-        pPlugin->plugin->OnCleanUI();
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnCleanUI);
 }
 
 VOID PluginsReloadUI()
@@ -659,13 +704,8 @@ VOID PluginsReloadUI()
     PluginDebug("PluginsReloadUI()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        pPlugin->plugin->OnReloadUI();
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnReloadUI);
 }
 
 VOID PluginsSetGameState(DWORD GameState)
@@ -719,14 +759,7 @@ VOID PluginsSetGameState(DWORD GameState)
         LoadCfgFile("CharSelect",false);
     }
 
-    CAutoLock Lock(&gPluginCS);
-    DebugSpew("PluginsSetGameState(%d)",GameState);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        pPlugin->plugin->OnSetGameState(GameState);
-        pPlugin=pPlugin->pNext;
-    }
+    InvokePlugins(&IPlugin::OnSetGameState, GameState);
 }
 
 VOID PluginsDrawHUD()
@@ -734,58 +767,34 @@ VOID PluginsDrawHUD()
     PluginDebug("PluginsDrawHUD()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        if (pPlugin->capabilities & PLUGIN_WANTS_DRAWHUD)
-        {
-            pPlugin->plugin->OnDrawHUD();
-        }
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnDrawHUD);
 }
 
 VOID PluginsAddSpawn(PSPAWNINFO pNewSpawn)
 {
-    DWORD BodyType=GetBodyType(pNewSpawn);
-    PluginDebug("PluginsAddSpawn(%s,%d,%d)",pNewSpawn->Name,pNewSpawn->Race,BodyType);
+    DWORD BodyType = GetBodyType(pNewSpawn);
+    PluginDebug("PluginsAddSpawn(%s,%d,%d)", pNewSpawn->Name, pNewSpawn->Race, BodyType);
     if (!bPluginCS)
         return;
-    if (gGameState>GAMESTATE_CHARSELECT)
-        SetNameSpriteState(pNewSpawn,1);
-    if (GetBodyTypeDesc(BodyType)[0]=='*')
+    if (gGameState > GAMESTATE_CHARSELECT)
+        SetNameSpriteState(pNewSpawn, 1);
+    if (GetBodyTypeDesc(BodyType)[0] == '*')
     {
-        WriteChatf("Spawn '%s' has unknown bodytype %d",pNewSpawn->Name,BodyType);
+        WriteChatf("Spawn '%s' has unknown bodytype %d", pNewSpawn->Name, BodyType);
     }
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        if (pPlugin->capabilities & PLUGIN_WANTS_SPAWNS)
-        {
-            pPlugin->plugin->OnAddSpawn(pNewSpawn);
-        }
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnAddSpawn, pNewSpawn);
 }
 
 VOID PluginsRemoveSpawn(PSPAWNINFO pSpawn)
 {
-    PluginDebug("PluginsRemoveSpawn(%s)",pSpawn->Name);
+    PluginDebug("PluginsRemoveSpawn(%s)", pSpawn->Name);
     SpawnByName.erase(pSpawn->Name);
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        if (pPlugin->capabilities & PLUGIN_WANTS_SPAWNS)
-        {
-            pPlugin->plugin->OnRemoveSpawn(pSpawn);
-        }
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnRemoveSpawn, pSpawn);
 }
 
 VOID PluginsAddGroundItem(PGROUNDITEM pNewGroundItem)
@@ -793,17 +802,10 @@ VOID PluginsAddGroundItem(PGROUNDITEM pNewGroundItem)
     PluginDebug("PluginsAddGroundItem()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    DebugSpew("PluginsAddGroundItem(%s) %.1f,%.1f,%.1f",pNewGroundItem->Name,pNewGroundItem->X,pNewGroundItem->Y,pNewGroundItem->Z);
-    while(pPlugin)
-    {
-        if (pPlugin->capabilities & PLUGIN_WANTS_GROUNDITEMS)
-        {
-            pPlugin->plugin->OnAddGroundItem(pNewGroundItem);
-        }
-        pPlugin=pPlugin->pNext;
-    }
+    DebugSpew("PluginsAddGroundItem(%s) %.1f,%.1f,%.1f", pNewGroundItem->Name,
+        pNewGroundItem->X, pNewGroundItem->Y, pNewGroundItem->Z);
+
+    InvokePlugins(&IPlugin::OnAddGroundItem, pNewGroundItem);
 }
 
 VOID PluginsRemoveGroundItem(PGROUNDITEM pGroundItem)
@@ -811,48 +813,31 @@ VOID PluginsRemoveGroundItem(PGROUNDITEM pGroundItem)
     PluginDebug("PluginsRemoveGroundItem()");
     if (!bPluginCS)
         return;
-    CAutoLock Lock(&gPluginCS);
-    PMQPLUGIN pPlugin=pPlugins;
-    while(pPlugin)
-    {
-        if (pPlugin->capabilities & PLUGIN_WANTS_GROUNDITEMS)
-        {
-            pPlugin->plugin->OnRemoveGroundItem(pGroundItem);
-        }
-        pPlugin=pPlugin->pNext;
-    }
+
+    InvokePlugins(&IPlugin::OnRemoveGroundItem, pGroundItem);
 }
 
 VOID PluginsBeginZone() 
-{ 
-    PluginDebug("PluginsBeginZone()"); 
-    if (!bPluginCS) 
-        return; 
-    gbInZone=false;
-    CAutoLock Lock(&gPluginCS); 
-    PMQPLUGIN pPlugin=pPlugins; 
-    while(pPlugin) 
-    { 
-        pPlugin->plugin->OnBeginZone();
-        pPlugin=pPlugin->pNext; 
-    } 
-} 
+{
+    PluginDebug("PluginsBeginZone()");
+    if (!bPluginCS)
+        return;
+    gbInZone = false;
+
+    InvokePlugins(&IPlugin::OnBeginZone);
+}
 
 VOID PluginsEndZone() 
-{ 
-    PluginDebug("PluginsEndZone()"); 
-    if (!bPluginCS) 
+{
+    PluginDebug("PluginsEndZone()");
+    if (!bPluginCS)
         return;
-    gbInZone=true;
-    CAutoLock Lock(&gPluginCS); 
-    PMQPLUGIN pPlugin=pPlugins; 
-    while(pPlugin) 
-    { 
-        pPlugin->plugin->OnEndZone();
-        pPlugin=pPlugin->pNext; 
-    } 
-    LoadCfgFile("zoned",true);
-    LoadCfgFile(((PZONEINFO)pZoneInfo)->ShortName,false);
+    gbInZone = true;
+
+    InvokePlugins(&IPlugin::OnEndZone);
+
+    LoadCfgFile("zoned", true);
+    LoadCfgFile(((PZONEINFO)pZoneInfo)->ShortName, false);
 } 
 
 #endif
