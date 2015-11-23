@@ -273,6 +273,9 @@ unique_ptr<MQPLUGIN> CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename
     {
         // new style plugin
         pPlugin->plugin = factory();
+
+        if (!pPlugin->plugin)
+            return NULL;
     }
     else
     {
@@ -289,23 +292,46 @@ unique_ptr<MQPLUGIN> CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename
     return pPlugin;
 }
 
+static string s_pluginError;
+static bool s_pluginFailed = false;
+
+VOID PluginFailed(const char* failureReason)
+{
+    s_pluginFailed = true;
+
+    if (failureReason)
+        s_pluginError = failureReason;
+}
+
+const char* GetPluginError()
+{
+    if (s_pluginFailed)
+        return s_pluginError.c_str();
+
+    return NULL;
+}
+
 DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
 {
-    CHAR Filename[MAX_PATH]={0};
+    CHAR Filename[MAX_PATH] = { 0 };
 
-    strcpy(Filename,pszFilename);
+    s_pluginError.clear();
+    s_pluginFailed = true;
+
+    strcpy(Filename, pszFilename);
     strlwr(Filename);
-    PCHAR Temp=strstr(Filename,".dll");
+    PCHAR Temp = strstr(Filename, ".dll");
     if (Temp)
-        Temp[0]=0;
-    CHAR TheFilename[MAX_STRING]={0};
-    sprintf(TheFilename,"%s.dll",Filename);
-    if(HMODULE hThemod = GetModuleHandle(TheFilename)) {
-        DebugSpew("LoadMQ2Plugin(0)(%s) already loaded",TheFilename);
-        return 2;
+        Temp[0] = 0;
+    CHAR TheFilename[MAX_STRING] = { 0 };
+    sprintf(TheFilename, "%s.dll", Filename);
+    if (HMODULE hThemod = GetModuleHandle(TheFilename)) {
+        DebugSpew("LoadMQ2Plugin(%s) already loaded", TheFilename);
+        s_pluginFailed = false;
+        return PLUGIN_ALREADY_LOADED;
     }
     CAutoLock Lock(&gPluginCS);
-    DebugSpew("LoadMQ2Plugin(%s)",Filename);
+    DebugSpew("LoadMQ2Plugin(%s)", Filename);
 
     CHAR FullFilename[MAX_STRING]={0};
     sprintf(FullFilename,"%s\\%s.dll",gszINIPath,Filename);
@@ -324,6 +350,7 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
         if (errorText != NULL)
         {
             DebugSpew("LoadMQ2Plugin(%s) failed: %s", Filename, errorText);
+            s_pluginError = errorText;
             LocalFree(errorText);
 
             errorText = NULL;
@@ -332,7 +359,7 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
         {
             DebugSpew("LoadMQ2Plugin(%s) Failed", Filename);
         }
-        return 0;
+        return PLUGIN_LOAD_FAILED;
     }
 
     if (!bForce)
@@ -342,11 +369,12 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
         }
         if (mq2mainstamp > checkme((char*)hmod)) {
             char tmpbuff[MAX_PATH];
+            s_pluginError = "Plugin is older than MQ2Main";
             sprintf(tmpbuff, "Please recompile %s -- it is out of date with respect to mq2main (%d>%d)", FullFilename, mq2mainstamp, checkme((char*)hmod));
             DebugSpew(tmpbuff);
             MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
             FreeLibrary(hmod);
-            return 0;
+            return PLUGIN_LOAD_FAILED;
         }
     }
 
@@ -356,27 +384,46 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
 
         // LoadLibrary count must match FreeLibrary count for unloading to work.
         FreeLibrary(hmod);
-        return 2; // already loaded
+        s_pluginFailed = false;
+        return PLUGIN_ALREADY_LOADED; // already loaded
     }
 
-    // Validate the plugin
-    const char** ppRuntimeStr = (const char**)GetProcAddress(hmod, "MQ2Runtime");
-    if (!ppRuntimeStr || strcmp(*ppRuntimeStr, MQ2Runtime) != 0)
+    if (!bForce)
     {
-        char tmpbuff[MAX_PATH];
-        if (!ppRuntimeStr)
-            sprintf_s(tmpbuff, "%s needs to be updated. It does not specify the compiler version.", FullFilename);
-        else
-            sprintf_s(tmpbuff, "%s needs to be updated. The compiler version does not match!\n\nExpected: %s\nActual: %s",
-                FullFilename, MQ2Runtime, *ppRuntimeStr);
-        DebugSpew(tmpbuff);
-        MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
-        FreeLibrary(hmod);
-        return 0;
+        // Validate the plugin's runtime version
+        const char** ppRuntimeStr = (const char**)GetProcAddress(hmod, "MQ2Runtime");
+        if (!ppRuntimeStr || strcmp(*ppRuntimeStr, MQ2Runtime) != 0)
+        {
+            char tmpbuff[MAX_PATH];
+            if (!ppRuntimeStr)
+                sprintf_s(tmpbuff, "%s needs to be updated. It does not specify the compiler version.", FullFilename);
+            else
+                sprintf_s(tmpbuff, "%s needs to be updated. The compiler version does not match!\n\nExpected: %s\nActual: %s",
+                    FullFilename, MQ2Runtime, *ppRuntimeStr);
+            s_pluginError = "Compiler version mismatch";
+            DebugSpew(tmpbuff);
+            MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
+            FreeLibrary(hmod);
+            return PLUGIN_LOAD_FAILED;
+        }
     }
 
     unique_ptr<MQPLUGIN> pPlugin = CreatePlugin(hmod, bCustom, Filename);
-    pPlugin->plugin->Initialize();
+
+    if (pPlugin == nullptr) {
+        s_pluginError = "Failed to create plugin";
+    }
+    else {
+        // if we made it this far, assume that initialization is successful
+        s_pluginFailed = false;
+        pPlugin->plugin->Initialize();
+    }
+
+    if (s_pluginFailed) {
+        DebugSpew("LoadMQ2Plugin(%s) initialization failed: %s", Filename, s_pluginError.c_str());
+        FreeLibrary(hmod);
+        return PLUGIN_LOAD_FAILED;
+    }
 
     PluginCmdSort();
 
@@ -412,7 +459,7 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom, BOOL bForce)
 
     sprintf(FullFilename,"%s-AutoExec",Filename);
     LoadCfgFile(FullFilename,false);
-    return 1;
+    return PLUGIN_LOAD_SUCCESS;
 }
 
 //what is this?
@@ -556,53 +603,53 @@ VOID RewriteMQ2Plugins()
 VOID InitializeMQ2Plugins()
 {
     DebugSpew("Initializing plugins");
-    bmWriteChatColor=AddMQ2Benchmark("WriteChatColor");
-    bmPluginsIncomingChat=AddMQ2Benchmark("PluginsIncomingChat");
-    bmPluginsPulse=AddMQ2Benchmark("PluginsPulse");
-    bmPluginsOnZoned=AddMQ2Benchmark("PluginsOnZoned");
-    bmPluginsCleanUI=AddMQ2Benchmark("PluginsCleanUI");
-    bmPluginsReloadUI=AddMQ2Benchmark("PluginsReloadUI");
-    bmPluginsDrawHUD=AddMQ2Benchmark("PluginsDrawHUD");
-    bmPluginsSetGameState=AddMQ2Benchmark("PluginsSetGameState");
-    bmCalculate=AddMQ2Benchmark("Calculate");
-    bmBeginZone=AddMQ2Benchmark("BeginZone"); 
-    bmEndZone=AddMQ2Benchmark("EndZone"); 
+    bmWriteChatColor = AddMQ2Benchmark("WriteChatColor");
+    bmPluginsIncomingChat = AddMQ2Benchmark("PluginsIncomingChat");
+    bmPluginsPulse = AddMQ2Benchmark("PluginsPulse");
+    bmPluginsOnZoned = AddMQ2Benchmark("PluginsOnZoned");
+    bmPluginsCleanUI = AddMQ2Benchmark("PluginsCleanUI");
+    bmPluginsReloadUI = AddMQ2Benchmark("PluginsReloadUI");
+    bmPluginsDrawHUD = AddMQ2Benchmark("PluginsDrawHUD");
+    bmPluginsSetGameState = AddMQ2Benchmark("PluginsSetGameState");
+    bmCalculate = AddMQ2Benchmark("Calculate");
+    bmBeginZone = AddMQ2Benchmark("BeginZone");
+    bmEndZone = AddMQ2Benchmark("EndZone");
 
     InitializeCriticalSection(&gPluginCS);
-    bPluginCS=1;
+    bPluginCS = 1;
 
-    CHAR PluginList[MAX_STRING*10] = {0};
-    CHAR szBuffer[MAX_STRING] = {0};
-    CHAR MainINI[MAX_STRING] = {0};
-    sprintf(MainINI,"%s\\macroquest.ini",gszINIPath);
-    GetPrivateProfileString("Plugins",NULL,"",PluginList,MAX_STRING*10,MainINI);
+    CHAR PluginList[MAX_STRING * 10] = { 0 };
+    CHAR szBuffer[MAX_STRING] = { 0 };
+    CHAR MainINI[MAX_STRING] = { 0 };
+    sprintf(MainINI, "%s\\macroquest.ini", gszINIPath);
+    GetPrivateProfileString("Plugins", NULL, "", PluginList, MAX_STRING * 10, MainINI);
     PCHAR pPluginList = PluginList;
-	BOOL loadvalue = 0;
-    while (pPluginList[0]!=0) {
-        GetPrivateProfileString("Plugins",pPluginList,"",szBuffer,MAX_STRING,MainINI);
+    BOOL loadvalue = 0;
+    while (pPluginList[0] != 0) {
+        GetPrivateProfileString("Plugins", pPluginList, "", szBuffer, MAX_STRING, MainINI);
         if (IsNumber(szBuffer)) {
-			loadvalue=atoi(szBuffer);
-			szBuffer[0] = '\0';
-		}
-		if(loadvalue==1 || szBuffer[0]!=0) {
+            loadvalue = atoi(szBuffer);
+            szBuffer[0] = '\0';
+        }
+        if (loadvalue == 1 || szBuffer[0] != 0) {
             LoadMQ2Plugin(pPluginList);
         }
-        pPluginList+=strlen(pPluginList)+1;
+        pPluginList += strlen(pPluginList) + 1;
     }
-	//ok now check if user has a CustomPlugin.ini and load those as well...
-	sprintf(MainINI,"%s\\CustomPlugins.ini",gszINIPath);
-    GetPrivateProfileString("Plugins",NULL,"",PluginList,MAX_STRING*10,MainINI);
+    //ok now check if user has a CustomPlugin.ini and load those as well...
+    sprintf(MainINI, "%s\\CustomPlugins.ini", gszINIPath);
+    GetPrivateProfileString("Plugins", NULL, "", PluginList, MAX_STRING * 10, MainINI);
     pPluginList = PluginList;
-    while (pPluginList[0]!=0) {
-        GetPrivateProfileString("Plugins",pPluginList,"",szBuffer,MAX_STRING,MainINI);
+    while (pPluginList[0] != 0) {
+        GetPrivateProfileString("Plugins", pPluginList, "", szBuffer, MAX_STRING, MainINI);
         if (IsNumber(szBuffer)) {
-			loadvalue=atoi(szBuffer);
-			szBuffer[0] = '\0';
-		}
-		if(loadvalue==1 || szBuffer[0]!=0) {
-            LoadMQ2Plugin(pPluginList,1);
+            loadvalue = atoi(szBuffer);
+            szBuffer[0] = '\0';
         }
-        pPluginList+=strlen(pPluginList)+1;
+        if (loadvalue == 1 || szBuffer[0] != 0) {
+            LoadMQ2Plugin(pPluginList, 1);
+        }
+        pPluginList += strlen(pPluginList) + 1;
     }
 }
 

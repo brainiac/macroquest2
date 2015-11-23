@@ -11,3 +11,4 @@ MQ2Main/MQ2Auth0.h
 .vs/
 
 *.suo
+*.user

@@ -347,16 +347,25 @@ EQLIB_API VOID RemoveDetour(DWORD address);
 /* PLUGIN HANDLING */
 EQLIB_API VOID WriteChatf(PCHAR Format, ...);
 EQLIB_API VOID WriteChatColor(PCHAR Line, DWORD Color = USERCOLOR_DEFAULT, DWORD Filter = 0);
+
 #ifndef ISXEQ
 EQLIB_API VOID InitializeMQ2Plugins();
+
 EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom = 0, BOOL bForce = 0);
+#define PLUGIN_LOAD_FAILED          0
+#define PLUGIN_LOAD_SUCCESS         1
+#define PLUGIN_ALREADY_LOADED       2
+
 EQLIB_API BOOL UnloadMQ2Plugin(const PCHAR pszFilename);
 EQLIB_API VOID UnloadMQ2Plugins();
 EQLIB_API VOID ShutdownMQ2Plugins();
 EQLIB_API VOID RewriteMQ2Plugins(VOID);
 EQLIB_API PMQPLUGIN FindPlugin(const char* pluginName);
 EQLIB_API PMQPLUGIN FindPluginByHandle(HMODULE module);
+EQLIB_API VOID PluginFailed(const char* reason = 0);
+EQLIB_API const char* GetPluginError();
 #endif
+
 EQLIB_API VOID PulsePlugins();
 EQLIB_API VOID PluginsZoned();
 EQLIB_API BOOL PluginsIncomingChat(PCHAR Line, DWORD Color);
