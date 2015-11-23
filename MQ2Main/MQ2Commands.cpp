@@ -2985,7 +2985,10 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 		}
 		else
 		{
-			MacroError("Plugin '%s' could not be loaded.", szName);
+			if (const char* error = GetPluginError())
+				MacroError("Plugin '%s' could not be loaded: %s", szName, error);
+			else
+				MacroError("Plugin '%s' could not be loaded.", szName);
 		}
 	}
 }
