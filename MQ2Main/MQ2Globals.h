@@ -264,9 +264,10 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD EQADDR_DIMAIN;
 	EQLIB_VAR IDirectInputDevice8A **EQADDR_DIKEYBOARD;
 	EQLIB_VAR IDirectInputDevice8A **EQADDR_DIMOUSE;
+#endif
 	EQLIB_VAR PPOINT EQADDR_DIMOUSECOPY;
 	EQLIB_VAR PPOINT EQADDR_DIMOUSECHECK;
-#endif
+
 
 	EQLIB_VAR DWORD EQADDR_EQLABELS;
 
@@ -945,6 +946,9 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD AltAdvManager__GetCalculatedTimer;
 	EQLIB_VAR DWORD AltAdvManager__IsAbilityReady;
 	EQLIB_VAR DWORD AltAdvManager__GetAAById;
+	EQLIB_VAR DWORD AltAdvManager__CanTrainAbility;
+	EQLIB_VAR DWORD AltAdvManager__CanSeeAbility;
+	
 	EQLIB_VAR DWORD CAltAbilityData__GetMercCurrentRank;
 	EQLIB_VAR DWORD CAltAbilityData__GetMercMaxRank;
 	EQLIB_VAR DWORD CAltAbilityData__GetMaxRank;
@@ -1307,6 +1311,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD PcZoneClient__GetPcSkillLimit;
 	EQLIB_VAR DWORD PcZoneClient__HasCombatAbility;
 	EQLIB_VAR DWORD PcZoneClient__RemovePetEffect;
+	EQLIB_VAR DWORD PcZoneClient__HasAlternateAbility;
 
 	EQLIB_VAR DWORD EQSwitch__UseSwitch;
 
