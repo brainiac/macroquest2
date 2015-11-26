@@ -1518,7 +1518,7 @@ TLO(dataInvSlot)
 }
 
 #ifndef ISXEQ
-extern vector<unique_ptr<MQPLUGIN>> g_plugins;
+extern vector<shared_ptr<MQPLUGIN>> g_plugins;
 
 TLO(dataPlugin)
 {

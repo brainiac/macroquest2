@@ -23,6 +23,8 @@
 #include "MQ2Main/MQ2Main.h"
 #include "MQ2Main/MQ2Globals.h"
 
+#include <memory>
+
 #pragma comment(lib, "MQ2Main")
 
 #ifdef EQLIB_EXPORTS
@@ -54,5 +56,8 @@ extern CHAR INIFileName[MAX_PATH];
         return TRUE; \
     }
 #endif
+
+#define CreatePluginClass(x) \
+    __declspec(dllexport) std::unique_ptr<IPlugin> MQ2PluginFactory() { return std::make_unique<x>(); }
 
 #endif

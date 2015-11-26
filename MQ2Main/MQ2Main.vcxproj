@@ -51,6 +51,7 @@
     <OutDir>..\Release\</OutDir>
     <IntDir>.\Intermediate\</IntDir>
     <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>..\Release\</OutDir>
@@ -184,6 +185,7 @@
     <ClInclude Include="MQ2Inlines.h" />
     <ClInclude Include="MQ2Internal.h" />
     <ClInclude Include="MQ2Main.h" />
+    <ClInclude Include="MQ2PluginHandler.h" />
     <ClInclude Include="MQ2Prototypes.h" />
     <ClInclude Include="MQ2TopLevelObjects.h" />
     <ClInclude Include="dikeys.h" />
