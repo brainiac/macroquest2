@@ -4,6 +4,15 @@
 
 #include "../MQ2Plugin.h"
 
+PreSetup("MQ2HUD");
+
+CONFIGURE_PLUGIN(config)
+{
+	config->dependencies = {
+		"mq2foo"
+	};
+}
+
 bool bEQHasFocus=true;
 HMODULE EQWhMod=0; // Module handle used to check for eqw
 typedef HWND   (__stdcall *fEQW_GetDisplayWindow)(VOID);
@@ -24,8 +33,6 @@ typedef struct _HUDELEMENT {
 #define HUDTYPE_FULLSCREEN   2
 #define HUDTYPE_CURSOR      4
 #define HUDTYPE_CHARSELECT  8
-
-PreSetup("MQ2HUD");
 
 PHUDELEMENT pHud=0;
 struct _stat LastRead;
@@ -342,8 +349,20 @@ BOOL dataHUD(PCHAR szIndex, MQ2TYPEVAR &Ret)
     return true;
 }
 
+class MQ2HUD : public IPlugin
+{
+public:
+	virtual void Initialize() override;
+	virtual void Shutdown() override;
+
+	virtual void OnSetGameState(DWORD GameState) override;
+	virtual void OnZoned() override;
+	virtual void OnDrawHUD() override;
+};
+DECLARE_PLUGIN_CLASS(MQ2HUD);
+
 // Called once, when the plugin is to initialize
-PLUGIN_API VOID InitializePlugin(VOID)
+void MQ2HUD::Initialize()
 {
     CHAR szBuffer[MAX_STRING] = {0};
     // check for eqw running, and steal its function to check the foreground window if available
@@ -366,7 +385,7 @@ PLUGIN_API VOID InitializePlugin(VOID)
 }
 
 // Called once, when the plugin is to shutdown
-PLUGIN_API VOID ShutdownPlugin(VOID)
+void MQ2HUD::Shutdown()
 {
     DebugSpewAlways("Shutting down MQ2HUD");
     ClearElements();
@@ -379,7 +398,7 @@ PLUGIN_API VOID ShutdownPlugin(VOID)
     RemoveMQ2Data("HUD");
 }
 
-PLUGIN_API VOID SetGameState(DWORD GameState)
+void MQ2HUD::OnSetGameState(DWORD GameState)
 {
     if (GameState==GAMESTATE_INGAME)
         sprintf(HUDSection,"%s_%s",GetCharInfo()->Name,EQADDR_SERVERNAME);
@@ -390,13 +409,13 @@ PLUGIN_API VOID SetGameState(DWORD GameState)
 }
 
 // Called after entering a new zone
-PLUGIN_API VOID OnZoned(VOID)
+void MQ2HUD::OnZoned()
 {
     if (bZoneHUD) HandleINI();
 }
 
 // Called every frame that the "HUD" is drawn -- e.g. net status / packet loss bar
-PLUGIN_API VOID OnDrawHUD(VOID)
+void MQ2HUD::OnDrawHUD()
 {
     static int N=0;
     CHAR szBuffer[MAX_STRING]={0};

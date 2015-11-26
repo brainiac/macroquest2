@@ -320,7 +320,6 @@ PLUGIN_API VOID OnAddSpawn(PSPAWNINFO pNewSpawn)
 	// your toon's spawn id changes and it's no longer zero to start
 	// don't added it all 
 	if (Update && pNewSpawn->SpawnID != 0 && GetCharInfo()->pSpawn != pNewSpawn) {
-		DebugSpewAlways("MQ2Map::OnAddSpawn(%s) = %d", pNewSpawn->Name, pNewSpawn->SpawnID);
 		AddSpawn(pNewSpawn);
 	}
 }
@@ -329,7 +328,6 @@ PLUGIN_API VOID OnAddSpawn(PSPAWNINFO pNewSpawn)
 // It is NOT called for each existing spawn when a plugin shuts down.
 PLUGIN_API VOID OnRemoveSpawn(PSPAWNINFO pSpawn)
 {
-	DebugSpewAlways("MQ2Map::OnRemoveSpawn(%s) = %d", pSpawn->Name, pSpawn->SpawnID);
 	if (Update)
 		RemoveSpawn(pSpawn);
 }

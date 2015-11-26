@@ -9,6 +9,14 @@
 
 PreSetup("MQ2EQIM");
 
+CONFIGURE_PLUGIN(config)
+{
+	config->version = 1.0f;
+	config->dependencies = {
+		"MQ2EQBugFix"
+	};
+}
+
 // TODO: Buddy list window.
 
 #define BUDDY_OFFLINE   1
@@ -207,23 +215,30 @@ DWORD GetVTable(DWORD index)
     return Ret;
 }
 
-
-
-PLUGIN_API VOID InitializePlugin(VOID)
+class MQ2EQIM : public IPlugin
 {
-    DebugSpewAlways("Initializing MQ2EQIM");
+public:
+	virtual void Initialize() override;
+	virtual void Shutdown() override;
+	virtual void OnSetGameState(DWORD GameState) override;
+};
+DECLARE_PLUGIN_CLASS(MQ2EQIM);
 
-    // Add commands, macro parameters, hooks, etc.
-    // AddCommand("/mycommand",MyCommand);
-    // AddParm("$myparm(x)",MyParm);
-    pBuddyType = new MQ2BuddyType;    
-    AddMQ2Data("Buddy",dataBuddy);
-    AddMQ2Data("Buddies",dataBuddies);
-    AddCommand("/buddies",BuddiesCmd);
+void MQ2EQIM::Initialize()
+{
+	DebugSpewAlways("Initializing MQ2EQIM");
+
+	// Add commands, macro parameters, hooks, etc.
+	// AddCommand("/mycommand",MyCommand);
+	// AddParm("$myparm(x)",MyParm);
+	pBuddyType = new MQ2BuddyType;
+	AddMQ2Data("Buddy", dataBuddy);
+	AddMQ2Data("Buddies", dataBuddies);
+	AddCommand("/buddies", BuddiesCmd);
 }
 
 // Called once, when the plugin is to shutdown
-PLUGIN_API VOID ShutdownPlugin(VOID)
+void MQ2EQIM::Shutdown()
 {
     DebugSpewAlways("Shutting down MQ2EQIM");
 
@@ -243,7 +258,7 @@ PLUGIN_API VOID ShutdownPlugin(VOID)
 
 // Called once directly after initialization, and then every time the gamestate changes
 
-PLUGIN_API VOID SetGameState(DWORD GameState)
+void MQ2EQIM::OnSetGameState(DWORD GameState)
 {
     //DebugSpewAlways("MQ2EQIM::SetGameState()");
     if (GameState==GAMESTATE_INGAME)
