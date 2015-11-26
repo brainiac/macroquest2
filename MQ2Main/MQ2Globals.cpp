@@ -969,6 +969,7 @@ namespace MQ2Globals
 	};
 
 	PMQPLUGIN pPlugins = 0;
+	BOOL bInspectingPlugins = 0;
 	PMQXMLFILE pXMLFiles = 0;
 	DWORD ManaGained = 0;
 	DWORD HealthGained = 0;

@@ -354,6 +354,7 @@ namespace MQ2Globals
 	EQLIB_VAR PSUB pSubs;
 	EQLIB_VAR PMQCOMMAND pCommands;
 	EQLIB_VAR PMQPLUGIN pPlugins;
+	EQLIB_VAR BOOL bInspectingPlugins;
 	EQLIB_VAR PMQXMLFILE pXMLFiles;
 
 	EQLIB_VAR fGetLabelFromEQ GetLabelFromEQ;

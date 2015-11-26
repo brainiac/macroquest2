@@ -29,6 +29,7 @@ GNU General Public License for more details.
 
 #include "MQ2Main.h"
 
+#include <iterator>
 
 CRITICAL_SECTION gPluginCS;
 BOOL bPluginCS = 0;
@@ -44,6 +45,7 @@ vector<shared_ptr<MQPLUGIN>> g_plugins;
 
 static bool g_iteratingPlugins = false;
 
+
 //----------------------------------------------------------------------------
 
 DWORD GetModuleTimestamp(char *module)
@@ -57,7 +59,7 @@ DWORD GetModuleTimestamp(char *module)
     return pf->TimeDateStamp;
 }
 
-PMQPLUGIN FindPlugin(const char* pluginName)
+shared_ptr<MQPLUGIN> FindPluginShared(const char* pluginName)
 {
     CAutoLock Lock(&gPluginCS);
 
@@ -67,7 +69,12 @@ PMQPLUGIN FindPlugin(const char* pluginName)
         return _stricmp(plugin->szFilename, pluginName) == 0;
     });
 
-    return it == g_plugins.end() ? nullptr : it->get();
+    return it == g_plugins.end() ? nullptr : *it;
+}
+
+PMQPLUGIN FindPlugin(const char* pluginName)
+{
+    return FindPluginShared(pluginName).get();
 }
 
 PMQPLUGIN FindPluginByHandle(HMODULE module)
@@ -151,6 +158,60 @@ MQPLUGIN::~MQPLUGIN()
 
     if (hModule)
         FreeLibrary(hModule);
+}
+
+bool GetPluginConfiguration(const char* szPluginName, PPLUGINCONFIG config)
+{
+    HMODULE module = 0;
+    bool needsRelease = false;
+    bool success = false;
+
+    bInspectingPlugins = 1;
+
+    // first check to see if plugin is already loaded.
+    if (PMQPLUGIN plugin = FindPlugin(szPluginName))
+    {
+        module = plugin->hModule;
+    }
+    else
+    {
+        // plugin not loaded, so temporarily load it.
+        CHAR Filename[MAX_PATH] = { 0 };
+
+        // strip .dll from plugin name if it exists and then lowercase
+        strcpy_s(Filename, szPluginName);
+        strlwr(Filename);
+        PCHAR Temp = strstr(Filename, ".dll");
+        if (Temp)
+            Temp[0] = 0;
+
+        CHAR FullFilename[MAX_STRING] = { 0 };
+        sprintf_s(FullFilename, "%s\\%s.dll", gszINIPath, Filename);
+        
+        module = LoadLibrary(FullFilename);
+        needsRelease = true;
+    }
+
+    if (module)
+    {
+        // Configure plugin (optional)
+        fMQConfigurePlugin configure = (fMQConfigurePlugin)GetProcAddress(module, "ConfigurePlugin");
+        if (configure)
+        {
+            configure(config);
+        }
+
+        if (needsRelease)
+        {
+            FreeLibrary(module);
+        }
+
+        success = true;
+    }
+
+    bInspectingPlugins = 0;
+
+    return success;
 }
 
 // A LegacyPlugin is a plugin that implements the old style of plugin.
@@ -463,6 +524,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
     // and will free it when it is destroyed.
 
     if (pPlugin == nullptr) {
+        DebugSpew("LoadMQ2Plugin(%s) failed: Failed to create plugin", Filename);
         s_pluginError = "Failed to create plugin";
         s_pluginFailed = true;
     }
@@ -502,6 +564,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
 
                 s_pluginError = errorBuffer;
                 s_pluginFailed = true;
+                DebugSpew("LoadMQ2Plugin(%s) failed: %s", Filename, errorBuffer);
                 return PLUGIN_LOAD_FAILED;
             }
         }
@@ -696,6 +759,103 @@ VOID RewriteMQ2Plugins()
     }
 }
 
+// case insensitive comparison operator for map and set.
+struct ci_less
+{
+    struct nocase_compare {
+        bool operator()(const unsigned char& c1, const unsigned char& c2) const {
+            return tolower(c1) < tolower(c2);
+        }
+    };
+    bool operator()(const std::string& s1, const std::string& s2) const {
+        return std::lexicographical_compare(s1.begin(), s1.end(),
+            s2.begin(), s2.end(), nocase_compare());
+    }
+};
+
+template <typename SortedList, typename DependencyMap, typename Inputs>
+void TopologicalSort(SortedList& sortedList, DependencyMap& dependencies, Inputs& pluginsToLoad)
+{
+    // helper to remove a plugin from all dependencies (assume dep is met)
+    bool changed = false;
+    auto MeetDep = [&](const string& dep) {
+        sortedList.push_back(dep);
+        for (auto& v : dependencies) {
+            v.second.erase(dep);
+        }
+        pluginsToLoad.erase(dep);
+        changed = true;
+    };
+
+    // Topological sort, order the plugins so that they load in proper order
+    do
+    {
+        changed = false;
+        for (auto& plugin : pluginsToLoad)
+        {
+            // does this plugin have any remaining dependencies:
+            auto& deps = dependencies[plugin];
+
+            if (deps.size() == 0)
+                MeetDep(plugin);
+        }
+    } while (!pluginsToLoad.empty() && changed);
+
+    // take the remaining plugins and push the into the sorted list
+    copy(pluginsToLoad.begin(), pluginsToLoad.end(), back_inserter(sortedList));
+}
+
+void LoadSavedMQ2Plugins(const char* iniFile, bool isCustom)
+{
+    CHAR PluginList[MAX_STRING * 10] = { 0 };
+    CHAR szBuffer[MAX_STRING] = { 0 };
+    CHAR MainINI[MAX_STRING] = { 0 };
+
+    set<string, ci_less> pluginsToLoad;
+
+    sprintf_s(MainINI, "%s\\%s.ini", gszINIPath, iniFile);
+    GetPrivateProfileString("Plugins", NULL, "", PluginList, MAX_STRING * 10, MainINI);
+    PCHAR pPluginList = PluginList;
+    BOOL loadvalue = 0;
+    while (pPluginList[0] != 0) {
+        GetPrivateProfileString("Plugins", pPluginList, "", szBuffer, MAX_STRING, MainINI);
+        if (IsNumber(szBuffer)) {
+            loadvalue = atoi(szBuffer);
+            szBuffer[0] = '\0';
+        }
+        if (loadvalue == 1 || szBuffer[0] != 0) {
+            pluginsToLoad.insert(pPluginList);
+        }
+        pPluginList += strlen(pPluginList) + 1;
+    }
+
+    if (pluginsToLoad.empty())
+        return;
+
+    // now we need to gather their dependencies and sort them.
+    vector<string> sortedList;
+    map<string, set<string, ci_less>, ci_less> dependencies;
+
+    // first populate the dependencies
+    for (auto& plugin : pluginsToLoad)
+    {
+        PLUGINCONFIG config;
+        if (GetPluginConfiguration(plugin.c_str(), &config))
+        {
+            auto& s = dependencies[plugin];
+            auto& v = config.dependencies;
+            copy(v.begin(), v.end(), inserter(s, s.end()));
+        }
+    }
+
+    TopologicalSort(sortedList, dependencies, pluginsToLoad);
+
+    for (auto& plugin : sortedList)
+    {
+        LoadMQ2PluginEx(plugin.c_str(), isCustom, false);
+    }
+}
+
 VOID InitializeMQ2Plugins()
 {
     DebugSpew("Initializing plugins");
@@ -714,49 +874,40 @@ VOID InitializeMQ2Plugins()
     InitializeCriticalSection(&gPluginCS);
     bPluginCS = 1;
 
-    CHAR PluginList[MAX_STRING * 10] = { 0 };
-    CHAR szBuffer[MAX_STRING] = { 0 };
-    CHAR MainINI[MAX_STRING] = { 0 };
-    sprintf(MainINI, "%s\\macroquest.ini", gszINIPath);
-    GetPrivateProfileString("Plugins", NULL, "", PluginList, MAX_STRING * 10, MainINI);
-    PCHAR pPluginList = PluginList;
-    BOOL loadvalue = 0;
-    while (pPluginList[0] != 0) {
-        GetPrivateProfileString("Plugins", pPluginList, "", szBuffer, MAX_STRING, MainINI);
-        if (IsNumber(szBuffer)) {
-            loadvalue = atoi(szBuffer);
-            szBuffer[0] = '\0';
-        }
-        if (loadvalue == 1 || szBuffer[0] != 0) {
-            LoadMQ2Plugin(pPluginList);
-        }
-        pPluginList += strlen(pPluginList) + 1;
-    }
-    //ok now check if user has a CustomPlugin.ini and load those as well...
-    sprintf(MainINI, "%s\\CustomPlugins.ini", gszINIPath);
-    GetPrivateProfileString("Plugins", NULL, "", PluginList, MAX_STRING * 10, MainINI);
-    pPluginList = PluginList;
-    while (pPluginList[0] != 0) {
-        GetPrivateProfileString("Plugins", pPluginList, "", szBuffer, MAX_STRING, MainINI);
-        if (IsNumber(szBuffer)) {
-            loadvalue = atoi(szBuffer);
-            szBuffer[0] = '\0';
-        }
-        if (loadvalue == 1 || szBuffer[0] != 0) {
-            LoadMQ2Plugin(pPluginList, 1);
-        }
-        pPluginList += strlen(pPluginList) + 1;
-    }
+    LoadSavedMQ2Plugins("macroquest", false);
+    LoadSavedMQ2Plugins("CustomPlugins", true);
 }
 
 VOID UnloadMQ2Plugins()
 {
     CAutoLock Lock(&gPluginCS);
 
+    if (g_plugins.empty())
+        return;
+
+    // now we need to gather their dependencies and sort them.
+    vector<string> sortedList;
+    map<string, set<string, ci_less>, ci_less> dependencies;
+    set<string, ci_less> pluginsToUnload;
+
+    // first populate the dependencies
     for (auto& plugin : g_plugins)
     {
-        DebugSpew("%s->Unload()", plugin->szFilename);
-        CleanupMQ2Plugin(plugin.get());
+        pluginsToUnload.insert(plugin->szFilename);
+
+        for (auto& dep : plugin->dependencies)
+            dependencies[dep].insert(plugin->szFilename);
+    }
+
+    TopologicalSort(sortedList, dependencies, pluginsToUnload);
+
+    for (auto& plugin : sortedList)
+    {
+        auto p = FindPluginShared(plugin.c_str());
+        CleanupMQ2Plugin(p.get());
+
+        auto found = std::find(g_plugins.begin(), g_plugins.end(), p);
+        g_plugins.erase(found);
     }
 
     g_plugins.clear();
@@ -877,16 +1028,16 @@ VOID PluginsSetGameState(DWORD GameState)
             CharSelect=false;
             CHAR szBuffer[MAX_STRING]={0};
 
-            DebugSpew("PluginsSetGameState( %s server)",EQADDR_SERVERNAME);
+            DebugSpew("PluginsSetGameState(%s server)",EQADDR_SERVERNAME);
             if (PCHARINFO pCharInfo=GetCharInfo())
             {
-                DebugSpew("PluginsSetGameState( %s name)",pCharInfo->Name);
+                DebugSpew("PluginsSetGameState(%s name)",pCharInfo->Name);
                 sprintf(szBuffer,"%s_%s",EQADDR_SERVERNAME,pCharInfo->Name);
                 LoadCfgFile(szBuffer,false);
             }
             if (PCHARINFO2 pCharInfo2=GetCharInfo2())
             {
-                DebugSpew("PluginsSetGameState( %d class)",pCharInfo2->Class);
+                DebugSpew("PluginsSetGameState(%d class)",pCharInfo2->Class);
                 sprintf(szBuffer,"%s",GetClassDesc(pCharInfo2->Class));
                 LoadCfgFile(szBuffer,false);
             }
