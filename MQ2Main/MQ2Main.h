@@ -281,6 +281,7 @@ typedef double DOUBLE;
 #include "EQClasses.h"
 
 #include "MQ2Prototypes.h"
+#include "MQ2PluginHandler.h"
 #include "MQ2Internal.h"
 #include "MQ2Globals.h"
 
@@ -358,12 +359,20 @@ EQLIB_API VOID WriteChatColor(PCHAR Line, DWORD Color = USERCOLOR_DEFAULT, DWORD
 #ifndef ISXEQ
 EQLIB_API VOID InitializeMQ2Plugins();
 
-EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom = 0, BOOL bForce = 0);
+EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pluginName, BOOL bCustom = 0, BOOL bForce = 0);
+EQLIB_API DWORD LoadMQ2PluginEx(const char* pluginName, BOOL bCustom = 0, BOOL bForce = 0);
 #define PLUGIN_LOAD_FAILED          0
 #define PLUGIN_LOAD_SUCCESS         1
 #define PLUGIN_ALREADY_LOADED       2
+// the following values not returned by LoadMQ2Plugin, only LoadMQ2PluginEx
+#define PLUGIN_MISSING_DEPENDENCY   3
 
-EQLIB_API BOOL UnloadMQ2Plugin(const PCHAR pszFilename);
+EQLIB_API bool UnloadMQ2Plugin(const PCHAR pluginName);
+EQLIB_API DWORD UnloadMQ2PluginEx(const char* pluginName, bool bForce);
+#define PLUGIN_UNLOAD_NOT_FOUND     0
+#define PLUGIN_UNLOAD_SUCCESS       1
+#define PLUGIN_UNLOAD_IN_USE        2
+
 EQLIB_API VOID UnloadMQ2Plugins();
 EQLIB_API VOID ShutdownMQ2Plugins();
 EQLIB_API VOID RewriteMQ2Plugins(VOID);
@@ -371,6 +380,7 @@ EQLIB_API PMQPLUGIN FindPlugin(const char* pluginName);
 EQLIB_API PMQPLUGIN FindPluginByHandle(HMODULE module);
 EQLIB_API VOID PluginFailed(const char* reason = 0);
 EQLIB_API const char* GetPluginError();
+EQLIB_API bool IsPluginLoaded(const char* pluginName);
 #endif
 
 EQLIB_API VOID PulsePlugins();

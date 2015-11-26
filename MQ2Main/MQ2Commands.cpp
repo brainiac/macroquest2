@@ -702,36 +702,6 @@ VOID Help(PSPAWNINFO pChar, PCHAR szLine)
 	}
 }
 
-int keyarray[] = {
-	0x6e6f7a2f, 0x65, 0x0, 0x0,
-	0x7461672f, 0x65, 0x0, 0x0,
-	0x6461662f, 0x65, 0x0, 0x0,
-	0x6e69662f, 0x74617064, 0x68, 0x0,
-	0x7261772f, 0x70, 0x0, 0x0,
-	0x0, 0x0, 0x0, 0x0,
-};
-
-VOID CmdCmd(PSPAWNINFO pChar, PCHAR szLine)
-{}
-
-VOID PluginCmdSort(VOID)
-{
-	PMQCOMMAND pCmd = pCommands;
-	int i;
-	while (pCmd) {
-		if (pCmd->EQ == 0) {
-			//
-			for (i = 0; i<sizeof(keyarray) / 4; i += 4) {
-				if (!_stricmp(pCmd->Command, (char *)&keyarray[i])) {
-					pCmd->Function = CmdCmd;
-				}
-			}
-		}
-		pCmd = pCmd->pNext;
-	}
-}
-
-
 // ***************************************************************************
 // Function:    MacroBeep
 // Description: Our '/beep' command
@@ -2924,7 +2894,7 @@ VOID DisplayLoginName(PSPAWNINFO pChar, PCHAR szLine)
 }
 
 #ifndef ISXEQ_LEGACY
-extern vector<unique_ptr<MQPLUGIN>> g_plugins;
+extern vector<shared_ptr<MQPLUGIN>> g_plugins;
 
 // ***************************************************************************
 // Function:      PluginCommand
@@ -2957,27 +2927,43 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 	}
 
 	if (!strnicmp(szCommand, "unload", 6)) {
-		if (UnloadMQ2Plugin(szName))
+		szCommand = GetNextArg(szLine, 2);
+		bool force = (stricmp(szCommand, "force") == 0);
+
+		DWORD unloadResult = UnloadMQ2PluginEx(szName, force);
+		if (unloadResult == PLUGIN_UNLOAD_SUCCESS)
 		{
 			sprintf(szBuffer, "Plugin '%s' unloaded.", szName);
+
 			WriteChatColor(szBuffer, USERCOLOR_DEFAULT);
 			if (!strstr(szCommand, "noauto")) {
 				RewriteMQ2Plugins();
 			}
-
 		}
-		else
+		else if (unloadResult == PLUGIN_UNLOAD_NOT_FOUND)
 		{
 			MacroError("Plugin '%s' not found.", szName);
+		}
+		else if (unloadResult == PLUGIN_UNLOAD_IN_USE)
+		{
+			MacroError("Plugin '%s' is in use. Use [force] to unload.", szName);
+			if (const char* error = GetPluginError())
+				WriteChatf("\ayThe following plugins depend on %s: %s", szName, error);
 		}
 	}
 	else
 	{
-		BOOL force = (stricmp(szCommand, "nocheck") == 0);
+		BOOL force = (stricmp(szCommand, "nocheck") == 0) || (stricmp(szCommand, "force") == 0);
 
-		if (LoadMQ2Plugin(szName, 0, force))
+		DWORD loadResult = LoadMQ2Plugin(szName, 0, force);
+		if (loadResult == PLUGIN_LOAD_SUCCESS
+			|| loadResult == PLUGIN_ALREADY_LOADED)
 		{
-			sprintf(szBuffer, "Plugin '%s' loaded.", szName);
+			if (loadResult == PLUGIN_LOAD_SUCCESS)
+				sprintf_s(szBuffer, "Plugin '%s' loaded.", szName);
+			else
+				sprintf_s(szBuffer, "Plugin '%s' is already loaded.", szName);
+
 			WriteChatColor(szBuffer, USERCOLOR_DEFAULT);
 			if (stricmp(szCommand, "noauto")) {
 				RewriteMQ2Plugins();

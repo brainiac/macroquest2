@@ -148,5 +148,8 @@
     <ClInclude Include="..\ISXEQClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MQ2PluginHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
