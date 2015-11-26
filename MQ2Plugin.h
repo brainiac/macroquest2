@@ -48,16 +48,19 @@ extern CHAR INIFileName[MAX_PATH];
     { \
         if (ul_reason_for_call==DLL_PROCESS_ATTACH) \
         { \
-            DebugSpewAlways("%s Module Loaded",pluginname ); \
+            if (!bInspectingPlugins) DebugSpewAlways("%s Module Loaded",pluginname ); \
             sprintf(INIFileName,"%s\\%s.ini",gszINIPath,pluginname); \
         }\
         else if (ul_reason_for_call==DLL_PROCESS_DETACH) \
-            DebugSpewAlways("%s Module Unloaded",pluginname); \
+            if (!bInspectingPlugins) DebugSpewAlways("%s Module Unloaded",pluginname); \
         return TRUE; \
     }
 #endif
 
-#define CreatePluginClass(x) \
+#define DECLARE_PLUGIN_CLASS(x) \
     __declspec(dllexport) std::unique_ptr<IPlugin> MQ2PluginFactory() { return std::make_unique<x>(); }
+
+#define CONFIGURE_PLUGIN(config) \
+	PLUGIN_API void ConfigurePlugin(PPLUGINCONFIG config)
 
 #endif
