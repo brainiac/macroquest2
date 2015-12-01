@@ -103,6 +103,20 @@ bool IsPluginLoaded(const char* pluginName)
     return it != g_plugins.end();
 }
 
+namespace detail {
+    template <class F, class... Args>
+    inline auto invoke(F&& f, Args&&... args) ->
+        decltype(std::forward<F>(f)(std::forward<Args>(args)...)) {
+        return std::forward<F>(f)(std::forward<Args>(args)...);
+    }
+
+    template <class PMF, class Pointer, class... Args>
+    inline auto invoke(PMF pmf, Pointer&& ptr, Args&&... args) ->
+        decltype(((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...)) {
+        return ((*std::forward<Pointer>(ptr)).*pmf)(std::forward<Args>(args)...);
+    }
+}
+
 template <typename T, typename... Args>
 inline static void InvokePlugins(const T& func, Args&&... args)
 {
@@ -111,8 +125,9 @@ inline static void InvokePlugins(const T& func, Args&&... args)
 
     for (const auto& plugin : g_plugins)
     {
-        if (!plugin->removed)
-            (plugin->plugin.get()->*func)(std::forward<Args>(args)...);
+        if (plugin->removed)
+            continue;
+        detail::invoke(func, plugin->plugin.get(), std::forward<Args>(args)...);
     }
 
     g_iteratingPlugins = false;
@@ -987,6 +1002,11 @@ VOID WriteChatColor(PCHAR Line, DWORD Color, DWORD Filter)
     ExitMQ2Benchmark(bmWriteChatColor);
 }
 
+static void OnIncomingChatHelper(IPlugin* plugin, PCHAR Line, DWORD Color, BOOL& Ret)
+{
+    Ret |= plugin->OnIncomingChat(Line, Color);
+}
+
 BOOL PluginsIncomingChat(PCHAR Line, DWORD Color)
 {
     if (!bPluginCS)
@@ -996,7 +1016,7 @@ BOOL PluginsIncomingChat(PCHAR Line, DWORD Color)
     PluginDebug("PluginsIncomingChat()");
 
     BOOL Ret = 0;
-    InvokePlugins(&IPlugin::OnIncomingChatHelper, Line, Color, Ret);
+    InvokePlugins(&OnIncomingChatHelper, Line, Color, Ret);
 
     return Ret;
 }

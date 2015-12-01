@@ -105,13 +105,6 @@ public:
 	// This is called immediately before a plugin is unloaded. If checking names, make sure
 	// to use a case insensitive comparison.
 	virtual void OnPluginUnloaded(const char* pluginName) {}
-
-	// temp/internal: do not call this. This is here for the plugin system. TODO: Improve InvokePlugins
-	// so this can be removed.
-	void OnIncomingChatHelper(PCHAR Line, DWORD Color, BOOL& Ret)
-	{
-		Ret |= OnIncomingChat(Line, Color);
-	}
 };
 
 // typedefs for functions that plugins can export
