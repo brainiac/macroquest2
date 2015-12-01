@@ -41,7 +41,7 @@ const char* MQ2Runtime = MQ2RUNTIMEVERSION();
 static unsigned int mq2mainstamp = 0;
 
 // The authoritative list of plugins
-vector<shared_ptr<MQPLUGIN>> g_plugins;
+vector<shared_ptr<MQ2PluginInfo>> g_plugins;
 
 static bool g_iteratingPlugins = false;
 
@@ -59,30 +59,30 @@ DWORD GetModuleTimestamp(char *module)
     return pf->TimeDateStamp;
 }
 
-shared_ptr<MQPLUGIN> FindPluginShared(const char* pluginName)
+shared_ptr<MQ2PluginInfo> FindPluginShared(const char* pluginName)
 {
     CAutoLock Lock(&gPluginCS);
 
     auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
-        [pluginName](const shared_ptr<MQPLUGIN>& plugin)
+        [pluginName](const auto& plugin)
     {
-        return _stricmp(plugin->szFilename, pluginName) == 0;
+        return _stricmp(plugin->name.c_str(), pluginName) == 0;
     });
 
     return it == g_plugins.end() ? nullptr : *it;
 }
 
-PMQPLUGIN FindPlugin(const char* pluginName)
+MQ2PluginInfo* FindPlugin(const char* pluginName)
 {
     return FindPluginShared(pluginName).get();
 }
 
-PMQPLUGIN FindPluginByHandle(HMODULE module)
+MQ2PluginInfo* FindPluginByHandle(HMODULE module)
 {
     CAutoLock Lock(&gPluginCS);
 
     auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
-        [module](const shared_ptr<MQPLUGIN>& plugin)
+        [module](const auto& plugin)
     {
         return plugin->hModule == module;
     });
@@ -95,9 +95,9 @@ bool IsPluginLoaded(const char* pluginName)
     CAutoLock Lock(&gPluginCS);
 
     auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
-        [pluginName](const shared_ptr<MQPLUGIN>& plugin)
+        [pluginName](const auto& plugin)
     {
-        return _stricmp(plugin->szFilename, pluginName) == 0;
+        return _stricmp(plugin->name.c_str(), pluginName) == 0;
     });
 
     return it != g_plugins.end();
@@ -111,7 +111,7 @@ inline static void InvokePlugins(const T& func, Args&&... args)
 
     for (const auto& plugin : g_plugins)
     {
-        if (!plugin->bRemoved)
+        if (!plugin->removed)
             (plugin->plugin.get()->*func)(std::forward<Args>(args)...);
     }
 
@@ -129,6 +129,37 @@ static void AddPluginToLinkedList(PMQPLUGIN pPlugin)
     pPlugins = pPlugin;
 }
 
+static void AddPluginToLinkedList(MQ2PluginInfo* pluginInfo)
+{
+    CAutoLock Lock(&gPluginCS);
+
+    // find existing or create new
+    PMQPLUGIN pPlugin = pPlugins;
+    while (pPlugin)
+    {
+        if (_stricmp(pPlugin->szFilename, pluginInfo->name.c_str()) == 0)
+            return;
+        pPlugin = pPlugin->pNext;
+    }
+    // plugin not found
+    pPlugin = new MQPLUGIN;
+    strcpy_s(pPlugin->szFilename, pluginInfo->name.c_str());
+    pPlugin->hModule = pluginInfo->hModule;
+    pPlugin->fpVersion = pluginInfo->fpVersion;
+
+    // special case for backwards compatibility. We need to look and see
+    // if we have the version exported and copy it if we do.
+    if (pPlugin->hModule)
+    {
+        // populate version
+        if (float* ftmp = (float*)GetProcAddress(pluginInfo->hModule, "?MQ2Version@@3MA"))
+            pPlugin->fpVersion = *ftmp;
+    }
+
+    pPlugin->bCustom = pluginInfo->custom;
+    AddPluginToLinkedList(pPlugin);
+}
+
 static void RemovePluginFromLinkedList(PMQPLUGIN pPlugin)
 {
     CAutoLock Lock(&gPluginCS);
@@ -141,23 +172,44 @@ static void RemovePluginFromLinkedList(PMQPLUGIN pPlugin)
         pPlugin->pNext->pLast = pPlugin->pLast;
 }
 
-MQPLUGIN::MQPLUGIN()
+static void RemovePluginFromLinkedList(MQ2PluginInfo* pluginInfo)
 {
-    hModule = 0;
-    bCustom = FALSE;
-    fpVersion = 1.0;
-    pLast = 0;
-    pNext = 0;
-    bRemoved = false;
+    CAutoLock Lock(&gPluginCS);
+
+    // find existing plugin or return
+    PMQPLUGIN pPlugin = pPlugins;
+    while (pPlugin)
+    {
+        if (_stricmp(pPlugin->szFilename, pluginInfo->name.c_str()) == 0)
+            break;
+        pPlugin = pPlugin->pNext;
+    }
+    if (!pPlugin)
+        return;
+
+    RemovePluginFromLinkedList(pPlugin);
+    delete pPlugin;
 }
 
-MQPLUGIN::~MQPLUGIN()
+MQ2PluginInfo::MQ2PluginInfo(const char* filename_, HMODULE module_, bool custom_)
+    : name(filename_)
+    , custom(custom_)
+    , removed(false)
+    , hModule(module_)
+    , fpVersion(1.0)
 {
-    // release the plugin BEFORE freeing the module
+}
+
+MQ2PluginInfo::~MQ2PluginInfo()
+{
     plugin.reset();
 
     if (hModule)
         FreeLibrary(hModule);
+}
+
+PLUGINCONFIG::PLUGINCONFIG()
+{
 }
 
 bool GetPluginConfiguration(const char* szPluginName, PPLUGINCONFIG config)
@@ -169,7 +221,7 @@ bool GetPluginConfiguration(const char* szPluginName, PPLUGINCONFIG config)
     bInspectingPlugins = 1;
 
     // first check to see if plugin is already loaded.
-    if (PMQPLUGIN plugin = FindPlugin(szPluginName))
+    if (MQ2PluginInfo* plugin = FindPlugin(szPluginName))
     {
         module = plugin->hModule;
     }
@@ -219,8 +271,7 @@ bool GetPluginConfiguration(const char* szPluginName, PPLUGINCONFIG config)
 class LegacyPlugin : public IPlugin
 {
 public:
-    LegacyPlugin(HMODULE hmod, PMQPLUGIN pPlugin)
-        : plugin_(pPlugin)
+    LegacyPlugin(HMODULE hmod)
     {
         initialize_ = (fMQInitializePlugin)GetProcAddress(hmod, "InitializePlugin");
         shutdown_ = (fMQShutdownPlugin)GetProcAddress(hmod, "ShutdownPlugin");
@@ -339,18 +390,11 @@ private:
     fMQGroundItem remove_ground_item_;
     fMQBeginZone begin_zone_;
     fMQEndZone end_zone_;
-
-    PMQPLUGIN plugin_; // back reference
 };
 
-unique_ptr<MQPLUGIN> CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename)
+unique_ptr<MQ2PluginInfo> CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename)
 {
-    unique_ptr<MQPLUGIN> pPlugin(new MQPLUGIN);
-    pPlugin->bCustom = bCustom;
-    pPlugin->hModule = module;
-    strcpy_s(pPlugin->szFilename, szFilename);
-    pPlugin->fpVersion = 1.0;
-    pPlugin->bRemoved = false;
+    unique_ptr<MQ2PluginInfo> pPlugin = make_unique<MQ2PluginInfo>(szFilename, module, bCustom != 0);
 
     // We'll need to determine what kind of plugin we are loading.
     // New versions of the plugin interface export a function called "MQ2PluginFactory"
@@ -358,37 +402,29 @@ unique_ptr<MQPLUGIN> CreatePlugin(HMODULE module, BOOL bCustom, CHAR* szFilename
         "?MQ2PluginFactory@@YA?AV?$unique_ptr@VIPlugin@@U?$default_delete@VIPlugin@@@std@@@std@@XZ");
     if (factory)
     {
-        // new style plugin
+        // new style plugin uses factory.
         pPlugin->plugin = factory();
 
         if (!pPlugin->plugin)
-            return NULL;
+            return nullptr;
     }
     else
     {
         // old style plugin.
-        pPlugin->plugin.reset(new LegacyPlugin(module, pPlugin.get())); // wtb std::make_unique!
-
-        // populate version
-        if (float* ftmp = (float*)GetProcAddress(module, "?MQ2Version@@3MA"))
-            pPlugin->fpVersion = *ftmp;
+        pPlugin->plugin = make_unique<LegacyPlugin>(module);
     }
 
     // Configure plugin (optional)
     fMQConfigurePlugin configure = (fMQConfigurePlugin)GetProcAddress(module, "ConfigurePlugin");
     if (configure)
     {
-        PLUGINCONFIG config;
-        configure(&config);
-
-        pPlugin->fpVersion = config.version;
-        pPlugin->dependencies = config.dependencies;
+        configure(pPlugin.get());
     }
 
     return pPlugin;
 }
 
-VOID PluginFailed(const char* failureReason)
+void PluginFailed(const char* failureReason)
 {
     s_pluginFailed = true;
 
@@ -472,7 +508,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
     {
         // check that the module isn't already loaded as another plugin (maybe
         // with a different name? maybe it was renamed. who knows)
-        if (PMQPLUGIN pPlugin = FindPluginByHandle(hmod))
+        if (MQ2PluginInfo* pPlugin = FindPluginByHandle(hmod))
         {
             DebugSpew("LoadMQ2Plugin(%s) already loaded", Filename);
 
@@ -518,7 +554,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
         }
     }
 
-    unique_ptr<MQPLUGIN> pPlugin = CreatePlugin(hmod, bCustom, Filename);
+    unique_ptr<MQ2PluginInfo> pPlugin = CreatePlugin(hmod, bCustom, Filename);
 
     // from this point on, if pPlugin is not null, it owns the dll module handle
     // and will free it when it is destroyed.
@@ -601,6 +637,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
 
     AddPluginToLinkedList(pPlugin.get());
     g_plugins.emplace_back(std::move(pPlugin));
+    InvokePlugins(&IPlugin::OnPluginLoaded, Filename);
 
     sprintf(FullFilename, "%s-AutoExec", Filename);
     LoadCfgFile(FullFilename, false);
@@ -612,7 +649,7 @@ DWORD LoadMQ2Plugin(const PCHAR pluginName, BOOL bCustom /* = 0 */, BOOL bForce 
     DWORD result = LoadMQ2PluginEx(pluginName, bCustom, bForce);
 
     switch (result)
-    {
+    { 
     case PLUGIN_LOAD_FAILED:
     case PLUGIN_LOAD_SUCCESS:
     case PLUGIN_ALREADY_LOADED:
@@ -623,16 +660,17 @@ DWORD LoadMQ2Plugin(const PCHAR pluginName, BOOL bCustom /* = 0 */, BOOL bForce 
     }
 }
 
-static void CleanupMQ2Plugin(MQPLUGIN* pPlugin)
+static void CleanupMQ2Plugin(MQ2PluginInfo* pPlugin)
 {
     RemovePluginFromLinkedList(pPlugin);
+    InvokePlugins(&IPlugin::OnPluginUnloaded, pPlugin->name.c_str());
 
     pPlugin->plugin->OnCleanUI();
     pPlugin->plugin->Shutdown();
 }
 
 // get a list of plugins that are currently depending on this one.
-vector<string> GetDependentPlugins(PMQPLUGIN plugin)
+vector<string> GetDependentPlugins(MQ2PluginInfo* plugin)
 {
     vector<string> plugins;
 
@@ -643,8 +681,8 @@ vector<string> GetDependentPlugins(PMQPLUGIN plugin)
 
         for (auto& dep : otherPlugin->dependencies)
         {
-            if (stricmp(dep.c_str(), plugin->szFilename) == 0)
-                plugins.push_back(otherPlugin->szFilename);
+            if (stricmp(dep.c_str(), plugin->name.c_str()) == 0)
+                plugins.push_back(otherPlugin->name);
         }
     }
 
@@ -664,9 +702,9 @@ DWORD UnloadMQ2PluginEx(const char* pszFilename, bool force)
     // find plugin in list
     CAutoLock Lock(&gPluginCS);
     auto it = std::find_if(g_plugins.begin(), g_plugins.end(),
-        [pszFilename](const shared_ptr<MQPLUGIN>& plugin)
+        [pszFilename](const shared_ptr<MQ2PluginInfo>& plugin)
     {
-        return _stricmp(plugin->szFilename, pszFilename) == 0;
+        return _stricmp(plugin->name.c_str(), pszFilename) == 0;
     });
 
     if (it == g_plugins.end()) {
@@ -750,8 +788,8 @@ VOID RewriteMQ2Plugins()
 
     for (auto& plugin : g_plugins)
     {
-        if (!plugin->bCustom)
-            WritePrivateProfileString("Plugins", plugin->szFilename, "1", gszINIFilename);
+        if (!plugin->custom)
+            WritePrivateProfileString("Plugins", plugin->name.c_str(), "1", gszINIFilename);
     }
 
     if (bChangedfileattribs) {
@@ -893,10 +931,10 @@ VOID UnloadMQ2Plugins()
     // first populate the dependencies
     for (auto& plugin : g_plugins)
     {
-        pluginsToUnload.insert(plugin->szFilename);
+        pluginsToUnload.insert(plugin->name);
 
         for (auto& dep : plugin->dependencies)
-            dependencies[dep].insert(plugin->szFilename);
+            dependencies[dep].insert(plugin->name);
     }
 
     TopologicalSort(sortedList, dependencies, pluginsToUnload);

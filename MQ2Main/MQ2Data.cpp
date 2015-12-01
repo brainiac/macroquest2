@@ -1518,7 +1518,7 @@ TLO(dataInvSlot)
 }
 
 #ifndef ISXEQ
-extern vector<shared_ptr<MQPLUGIN>> g_plugins;
+extern vector<shared_ptr<MQ2PluginInfo>> g_plugins;
 
 TLO(dataPlugin)
 {
@@ -1537,7 +1537,7 @@ TLO(dataPlugin)
 	else
 	{
 		// name
-		if (PMQPLUGIN pPlugin = FindPlugin(szIndex))
+		if (MQ2PluginInfo* pPlugin = FindPlugin(szIndex))
 		{
 			Ret.Ptr = pPlugin;
 			Ret.Type = pPluginType;

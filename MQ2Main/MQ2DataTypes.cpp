@@ -107,7 +107,7 @@ bool MQ2TypeType::GETMEMBER()
 
 bool MQ2PluginType::GETMEMBER()
 {
-#define pPlugin ((PMQPLUGIN)VarPtr.Ptr)
+#define pPlugin ((MQ2PluginInfo*)VarPtr.Ptr)
 	if (!pPlugin)
 		return false;
 	PMQ2TYPEMEMBER pMember = MQ2PluginType::FindMember(Member);
@@ -116,12 +116,24 @@ bool MQ2PluginType::GETMEMBER()
 	switch ((PluginMembers)pMember->ID)
 	{
 	case Name:
-		Dest.Ptr = pPlugin->szFilename;
+		Dest.Ptr = (PVOID)pPlugin->name.c_str();
 		Dest.Type = pStringType;
 		return true;
 	case Version:
 		Dest.Float = pPlugin->fpVersion;
 		Dest.Type = pFloatType;
+		return true;
+	case VersionStr:
+		Dest.Ptr = (PVOID)pPlugin->version.c_str();
+		Dest.Type = pStringType;
+		return true;
+	case Author:
+		Dest.Ptr = (PVOID)pPlugin->author.c_str();
+		Dest.Type = pStringType;
+		return true;
+	case Description:
+		Dest.Ptr = (PVOID)pPlugin->description.c_str();
+		Dest.Type = pStringType;
 		return true;
 	}
 	return false;

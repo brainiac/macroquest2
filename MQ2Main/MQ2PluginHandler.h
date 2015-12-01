@@ -18,12 +18,13 @@ struct PLUGINCONFIG
 {
 	string author;
 	string description;
-	FLOAT version;
+	string version;
 
-	vector<string> dependencies;
+	vector<string> dependencies;          // enforced by plugin loader
+
+	PLUGINCONFIG();
 };
 typedef PLUGINCONFIG* PPLUGINCONFIG;
-
 
 
 // basic interface for plugins
@@ -97,8 +98,12 @@ public:
 	// has already been updated by the server.
 	virtual void OnEndZone() {}
 
+	// This is called immediately after a plugin has been loaded. If checking names, make sure
+	// to use a case insensitive comparison.
 	virtual void OnPluginLoaded(const char* pluginName) {}
 
+	// This is called immediately before a plugin is unloaded. If checking names, make sure
+	// to use a case insensitive comparison.
 	virtual void OnPluginUnloaded(const char* pluginName) {}
 
 	// temp/internal: do not call this. This is here for the plugin system. TODO: Improve InvokePlugins
@@ -108,29 +113,6 @@ public:
 		Ret |= OnIncomingChat(Line, Color);
 	}
 };
-
-struct MQPLUGIN
-{
-	MQPLUGIN();
-	~MQPLUGIN();
-
-	unique_ptr<IPlugin> plugin;  // pointer to the plugin object
-
-	char szFilename[MAX_PATH];   // the name of the plugin (ex: "MQ2ChatWnd")
-	HMODULE hModule;             // module handle of the DLL
-
-	BOOL bCustom;                // true if loaded from CustomPlugins.ini
-
-	vector<string> dependencies; // list of plugin dependencies
-	float fpVersion;             // plugin version
-
-	// TODO: Implement Me
-	bool bRemoved;               // for tracking removal of plugins during iteration
-
-	MQPLUGIN* pLast;
-	MQPLUGIN* pNext;
-};
-typedef MQPLUGIN* PMQPLUGIN;
 
 // typedefs for functions that plugins can export
 typedef VOID(__cdecl *fMQConfigurePlugin)(PPLUGINCONFIG);
@@ -152,18 +134,24 @@ typedef VOID(__cdecl *fMQBeginZone)(VOID);
 typedef VOID(__cdecl *fMQEndZone)(VOID);
 
 
-// this will come later...
-//class MQ2PluginEntry
-//{
-//public:
-//	MQ2PluginEntry(const std::string& filename);
-//	~MQ2PluginEntry();
-//
-//	const PLUGINCONFIG& GetConfig() const { return m_config; }
-//
-//	bool IsLoaded() const;
-//
-//
-//private:
-//	PLUGINCONFIG m_config;
-//};
+// A class that manages information about a single plugin.
+class MQ2PluginInfo : public PLUGINCONFIG
+{
+public:
+	MQ2PluginInfo(const char* filename, HMODULE module = 0, bool custom = false);
+	~MQ2PluginInfo();
+
+	// all the fields of the PLUGINCONFIG struct are accessible here
+
+	unique_ptr<IPlugin> plugin;  // pointer to the plugin object
+	HMODULE hModule;             // handle to the dll
+
+	string name;                 // name of the plugin (ex: "MQ2ChatWnd")
+	bool custom;                 // true if loaded from CustomPlugins.ini
+
+	bool loaded;                 // indicates if this plugin is actually loaded
+	float fpVersion;             // old: this is set if you export float MQ2Version; you should
+	                             // prefer to use the new string version in PLUGINCONFIG
+
+	bool removed;                // internal: for tracking removal of plugins during iteration
+};

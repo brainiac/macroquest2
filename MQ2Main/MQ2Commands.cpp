@@ -2894,7 +2894,7 @@ VOID DisplayLoginName(PSPAWNINFO pChar, PCHAR szLine)
 }
 
 #ifndef ISXEQ_LEGACY
-extern vector<shared_ptr<MQPLUGIN>> g_plugins;
+extern vector<shared_ptr<MQ2PluginInfo>> g_plugins;
 
 // ***************************************************************************
 // Function:      PluginCommand
@@ -2913,8 +2913,8 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 		if (g_plugins.empty()) {
 			WriteChatColor("No Plugins defined.", USERCOLOR_WHO);
 		} else {
-			for (auto iter = g_plugins.begin(); iter != g_plugins.end(); ++iter)
-				WriteChatColor((*iter)->szFilename, USERCOLOR_WHO);
+			for (auto& plugin : g_plugins)
+				WriteChatColor((PCHAR)plugin->name.c_str(), USERCOLOR_WHO);
 			DWORD Count = g_plugins.size();
 			sprintf(szName, "%d Plugin%s displayed.", Count, (Count == 1) ? "" : "s");
 			WriteChatColor(szName, USERCOLOR_WHO);

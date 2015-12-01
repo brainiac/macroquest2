@@ -3333,11 +3333,17 @@ public:
 	{
 		Name = 1,
 		Version = 2,
+		VersionStr = 3,
+		Author = 4,
+		Description = 5,
 	};
-	MQ2PluginType() :MQ2Type("plugin")
+	MQ2PluginType() : MQ2Type("plugin")
 	{
 		TypeMember(Name);
 		TypeMember(Version);
+		AddMember(VersionStr, "VersionString"); // VersionString is a #define ...
+		TypeMember(Author);
+		TypeMember(Description);
 	}
 
 	~MQ2PluginType()
@@ -3350,7 +3356,7 @@ public:
 	{
 		if (VarPtr.Ptr)
 		{
-			strcpy(Destination, ((PMQPLUGIN)VarPtr.Ptr)->szFilename);
+			strcpy(Destination, ((MQ2PluginInfo*)VarPtr.Ptr)->name.c_str());
 			return true;
 		}
 		return false;
