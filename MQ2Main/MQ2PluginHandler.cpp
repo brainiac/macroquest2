@@ -44,6 +44,7 @@ DWORD checkme(char *module)
     return pf->TimeDateStamp;
 }
 
+const char* MQ2Runtime = MQ2RUNTIMEVERSION();
 static unsigned int mq2mainstamp = 0;
 
 
@@ -85,6 +86,21 @@ DWORD LoadMQ2Plugin(const PCHAR pszFilename,BOOL bCustom)
     if (mq2mainstamp > checkme((char*)hmod)) {
         char tmpbuff[MAX_PATH];
         sprintf(tmpbuff, "Please recompile %s -- it is out of date with respect to mq2main (%d>%d)", FullFilename, mq2mainstamp, checkme((char*)hmod));
+        DebugSpew(tmpbuff);
+        MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
+        FreeLibrary(hmod);
+        return 0;
+    }
+    // Validate the plugin's runtime version
+    const char** ppRuntimeStr = (const char**)GetProcAddress(hmod, "MQ2Runtime");
+    if (!ppRuntimeStr || strcmp(*ppRuntimeStr, MQ2Runtime) != 0)
+    {
+        char tmpbuff[MAX_PATH];
+        if (!ppRuntimeStr)
+            sprintf_s(tmpbuff, "%s needs to be updated. It does not specify the compiler version.", FullFilename);
+        else
+            sprintf_s(tmpbuff, "%s needs to be updated. The compiler version does not match!\n\nExpected: %s\nActual: %s",
+                FullFilename, MQ2Runtime, *ppRuntimeStr);
         DebugSpew(tmpbuff);
         MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
         FreeLibrary(hmod);
