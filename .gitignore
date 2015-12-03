@@ -1,0 +1,14 @@
+*.dll
+*.exp
+*.map
+*.sdf
+*.opensdf
+Intermediate/
+Release/
+Debug/
+ISXDK/
+MQ2Main/MQ2Auth0.h
+.vs/
+*.pdb
+*.suo
+*.user

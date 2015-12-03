@@ -1,0 +1,9 @@
+version: 1.0.{build}
+configuration: Release
+
+before_build:
+  - .\MQ2Auth
+build:
+  project: MacroQuest2.sln
+  parallel: true
+  verbosity: minimal

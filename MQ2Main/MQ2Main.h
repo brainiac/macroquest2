@@ -225,6 +225,23 @@ typedef double DOUBLE;
 #define THIS_                   INTERFACE FAR* This,
 #endif
 
+
+#define MQSTRINGIFY2(x) #x
+#define MQSTRINGIFY(x) MQSTRINGIFY2(x)
+
+#if defined(_DEBUG)
+#define MQ2DEBUGRUNTIME "d"
+#else
+#define MQ2DEBUGRUNTIME ""
+#endif
+#if _DLL
+#define MQ2RUNTIME "MD" MQ2DEBUGRUNTIME
+#else
+#define MQ2RUNTIME "MT" MQ2DEBUGRUNTIME
+#endif
+
+#define MQ2RUNTIMEVERSION() MQSTRINGIFY(_MSC_FULL_VER) "_" MQ2RUNTIME
+
 // DEBUGGING
 //#ifndef DEBUG_TRY
 //#define DEBUG_TRY
@@ -338,7 +355,7 @@ EQLIB_API VOID WriteChatf(PCHAR Format, ...);
 EQLIB_API VOID WriteChatColor(PCHAR Line, DWORD Color = USERCOLOR_DEFAULT, DWORD Filter = 0);
 #ifndef ISXEQ
 EQLIB_API VOID InitializeMQ2Plugins();
-EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom = 0);
+EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom = 0, BOOL bForce = 0);
 EQLIB_API BOOL UnloadMQ2Plugin(const PCHAR pszFilename);
 EQLIB_API VOID UnloadMQ2Plugins();
 EQLIB_API VOID ShutdownMQ2Plugins();
