@@ -355,7 +355,7 @@ EQLIB_API VOID WriteChatf(PCHAR Format, ...);
 EQLIB_API VOID WriteChatColor(PCHAR Line, DWORD Color = USERCOLOR_DEFAULT, DWORD Filter = 0);
 #ifndef ISXEQ
 EQLIB_API VOID InitializeMQ2Plugins();
-EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom = 0);
+EQLIB_API DWORD LoadMQ2Plugin(const PCHAR pszFilename, BOOL bCustom = 0, BOOL bForce = 0);
 EQLIB_API BOOL UnloadMQ2Plugin(const PCHAR pszFilename);
 EQLIB_API VOID UnloadMQ2Plugins();
 EQLIB_API VOID ShutdownMQ2Plugins();

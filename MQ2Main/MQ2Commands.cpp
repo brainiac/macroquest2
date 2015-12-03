@@ -2956,7 +2956,7 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 		return;
 	}
 	if (szName[0] == 0) {
-		SyntaxError("Usage: /Plugin name [unload] [noauto], or /Plugin list");
+		SyntaxError("Usage: /plugin name [unload] [noauto] [force], or /plugin list");
 		return;
 	}
 
@@ -2976,11 +2976,12 @@ VOID PluginCommand(PSPAWNINFO pChar, PCHAR szLine)
 		}
 	}
 	else {
-		if (LoadMQ2Plugin(szName))
+		BOOL force = (strstr(szCommand, "force") != 0);
+		if (LoadMQ2Plugin(szName, 0, force))
 		{
 			sprintf(szBuffer, "Plugin '%s' loaded.", szName);
 			WriteChatColor(szBuffer, USERCOLOR_DEFAULT);
-			if (stricmp(szCommand, "noauto")) {
+			if (!strstr(szCommand, "noauto")) {
 				RewriteMQ2Plugins();
 			}
 		}
