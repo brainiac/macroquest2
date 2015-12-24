@@ -543,7 +543,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
             char tmpbuff[MAX_PATH];
             s_pluginError = "Plugin is older than MQ2Main";
             sprintf(tmpbuff, "Please recompile %s -- it is out of date with respect to mq2main (%d>%d)", FullFilename, mq2mainstamp, GetModuleTimestamp((char*)hmod));
-            DebugSpew(tmpbuff);
+            DebugSpew("%s", tmpbuff);
             MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
             FreeLibrary(hmod);
             s_pluginFailed = true;
@@ -561,7 +561,7 @@ DWORD LoadMQ2PluginEx(const char* pszFilename, BOOL bCustom, BOOL bForce)
                 sprintf_s(tmpbuff, "%s needs to be updated. The compiler version does not match!\n\nExpected: %s\nActual: %s",
                     FullFilename, MQ2Runtime, *ppRuntimeStr);
             s_pluginError = "Compiler version mismatch";
-            DebugSpew(tmpbuff);
+            DebugSpew("%s", tmpbuff);
             MessageBoxA(NULL, tmpbuff, "Plugin Load Failed", MB_OK);
             FreeLibrary(hmod);
             s_pluginFailed = true;

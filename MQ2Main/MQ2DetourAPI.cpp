@@ -36,7 +36,7 @@ typedef struct _OurDetours {
 	/* 0x46 */    struct _OurDetours *pLast;
 } OurDetours;
 
-OurDetours *ourdetours = 0;
+EQLIB_VAR OurDetours *ourdetours = 0;
 CRITICAL_SECTION gDetourCS;
 
 
@@ -480,10 +480,10 @@ bool __cdecl memcheck5(DWORD count)
 			mov eax, dword ptr[eax + 0x8];
 			mov ebx, __MemChecker1_x;
 			sub ebx, 0x400000;
-			add ebx, eax;
-			add ebx, count;
+			xor edx, edx;
+			add edx, count;
 			add esp, 4;
-			mov esp, ebx;
+			mov esp, edx;
 			ret;
 		sha:
 			pop edx;
@@ -620,7 +620,8 @@ int __cdecl memcheck1(unsigned char *buffer, int count, struct mckey key)
 			}
 			detour = detour->pNext;
 		}
-		if (!detour) tmp = buffer[i];
+		if (!detour)
+			tmp = buffer[i];
 #endif
 		ebx = ((int)tmp ^ eax) & 0xff;
 		eax = ((int)eax >> 8) & 0xffffff;
@@ -889,7 +890,8 @@ int __cdecl memcheck3(unsigned char *buffer, int count, struct mckey key)
 			}
 			detour = detour->pNext;
 		}
-		if (!detour) tmp = buffer[i];
+		if (!detour)
+			tmp = buffer[i];
 #endif
 
 		ebx = (tmp ^ edx) & 0xff;

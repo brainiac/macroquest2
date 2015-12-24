@@ -38,7 +38,7 @@ VOID Unload(PSPAWNINFO pChar, PCHAR szLine)
 		pChar = (PSPAWNINFO)pLocalPlayer;
 	bRunNextCommand = TRUE;
 	if (gMacroBlock) EndMacro(pChar, szLine);
-	DebugSpew(ToUnloadString);
+	DebugSpew("%s",ToUnloadString);
 	WriteChatColor(ToUnloadString, USERCOLOR_DEFAULT);
 	gbUnload = TRUE;
 }
@@ -2751,7 +2751,7 @@ VOID IniOutput(PSPAWNINFO pChar, PCHAR szLine)
 	}
 	if (!WritePrivateProfileString(szArg2, (char*)Arg3, (char*)Arg4, szArg1)) {
 		sprintf(szOutput, "IniOutput ERROR -- during WritePrivateProfileString: %s", szLine);
-		DebugSpew(szOutput);
+		DebugSpew("%s",szOutput);
 	}
 	else {
 		sprintf(szOutput, "IniOutput Write Successful!");
@@ -2775,7 +2775,7 @@ VOID BankList(PSPAWNINFO pChar, PCHAR szLine)
 	}
 	WriteChatColor("Listing of Bank Inventory", USERCOLOR_DEFAULT);
 	WriteChatColor("-------------------------", USERCOLOR_DEFAULT);
-	char Link[512] = { 0 };
+	char Link[MAX_STRING] = { 0 };
 	for (int a = 0; a<NUM_BANK_SLOTS; a++) {
 		if (pCharInfo->pBankArray) pContainer = pCharInfo->pBankArray->Bank[a];
 		if (pContainer) {
