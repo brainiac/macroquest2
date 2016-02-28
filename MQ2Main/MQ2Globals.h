@@ -110,6 +110,7 @@ namespace MQ2Globals
 
 	EQLIB_VAR PCHATBUF gDelayedCommands;
 
+	EQLIB_VAR BOOL gTargetbuffs;
 	EQLIB_VAR BOOL gbInZone;
 	EQLIB_VAR BOOL gZoning;
 	EQLIB_VAR BOOL WereWeZoning;
@@ -313,7 +314,6 @@ namespace MQ2Globals
 	EQLIB_VAR fEQCommand         cmdMercSwitch;
 	EQLIB_VAR fEQCommand         cmdAdvLoot;
 	EQLIB_VAR fEQCommand         cmdPickZone;
-
 
 	EQLIB_VAR fEQNewUIINI        NewUIINI;
 	EQLIB_VAR fEQProcGameEvts    ProcessGameEvents;
@@ -1186,6 +1186,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD CTabWnd__SetPageRect;
 	EQLIB_VAR DWORD CTabWnd__UpdatePage;
 	EQLIB_VAR DWORD CTargetRing__Cast;
+	EQLIB_VAR DWORD CTargetWnd__UpdateBuffs;
 	
 	EQLIB_VAR DWORD CTextOverlay__DisplayText;
 
@@ -1259,6 +1260,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD EQ_Character__IsExpansionFlag;
 	EQLIB_VAR DWORD EQ_Character__TotalEffect;
 	EQLIB_VAR DWORD EQ_Character__GetPCSpellAffect;
+	EQLIB_VAR DWORD EQ_Character__SpellDuration;
 
 	EQLIB_VAR DWORD EQ_Item__CanDrop;
 	EQLIB_VAR DWORD EQ_Item__CreateItemTagString;

@@ -84,28 +84,6 @@ static inline PCHAR GetClassDesc(DWORD ClassID)
     return pEverQuest->GetClassDesc(ClassID);
 }
 
-static inline BOOL IsAssistNPC(PSPAWNINFO pSpawn)
-{
-    if (GetCharInfo()->pSpawn && pSpawn)
-    {
-        DWORD nAssist;
-        {
-            if (GetCharInfo()->pSpawn->GroupAssistNPC[0]==pSpawn->SpawnID)
-            {
-                return true;
-            }
-        }
-        for (nAssist=0 ; nAssist < 3 ; nAssist++)
-        {
-            if (GetCharInfo()->pSpawn->RaidAssistNPC[nAssist]==pSpawn->SpawnID)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 static inline BOOL IsMarkedNPC(PSPAWNINFO pSpawn)
 {
     if (GetCharInfo()->pSpawn && pSpawn)
@@ -525,6 +503,17 @@ inline LONG GetMemorizedSpell(LONG index)
 	}
 	return -1;
 }
+inline LONG EQGetSpellDuration(PSPELL pSpell, unsigned char arg2, bool arg3)
+{
+	if (PCHARINFO pCharInfo = GetCharInfo()) {
+		if (pCharInfo->vtable2) {
+			if (EQ_Character *cb = (EQ_Character *)pCharData1) {
+				return cb->SpellDuration((EQ_Spell*)pSpell, arg2, arg3);
+			}
+		}
+	}
+	return 0;
+}
 /*
 need to figure out why this fails in xp and the above doesn't - eqmule
 static inline ULONGLONG GetTickCount64(void)
@@ -545,3 +534,72 @@ static inline ULONGLONG GetTickCount64(void)
     return pGetTickCount64();
 }
 */
+
+static inline LONG GetSpellNumEffects(PSPELL pSpell)
+{
+#if !defined(EMU)
+	if (pSpell) {
+		return pSpell->NumEffects;
+	}
+#endif
+	return 0xc;
+}
+static inline DWORD GetGroupMainAssistTargetID()
+{
+	if (PCHARINFO pChar = (PCHARINFO)GetCharInfo()) {
+		bool bMainAssist = false;
+		if (pChar->pGroupInfo && pChar->pGroupInfo->pMember) {
+			for (int i = 0; i < 6; i++) {
+				if (pChar->pGroupInfo->pMember[i]) {
+					if (pChar->pGroupInfo->pMember[i]->MainAssist) {
+						bMainAssist = true;
+						break;
+					}
+				}
+			}
+		}
+		if(bMainAssist)
+			return pChar->pSpawn->GroupAssistNPC[0];
+	}
+	return 0;
+}
+static inline DWORD GetRaidMainAssistTargetID(int index)
+{
+	if (PSPAWNINFO pSpawn = (PSPAWNINFO)pLocalPlayer) {
+		if (pRaid) {
+			bool bMainAssist = false;
+			for (int i = 0; i < 72; i++)
+			{
+				if (pRaid->RaidMemberUsed[i] && pRaid->RaidMember[i].RaidMainAssist)
+				{
+					bMainAssist = true;
+					break;
+				}
+			}
+			if (bMainAssist) {
+				if (index < 0 || index > 3)
+					index = 0;
+				return pSpawn->RaidAssistNPC[index];
+			}
+		}
+	}
+	return 0;
+}
+static inline BOOL IsAssistNPC(PSPAWNINFO pSpawn)
+{
+	if (pSpawn) {
+		if (DWORD AssistID = GetGroupMainAssistTargetID()) {
+			if (AssistID == pSpawn->SpawnID) {
+				return true;
+			}
+		}
+		for (int nAssist = 0; nAssist < 3; nAssist++) {
+			if (DWORD AssistID = GetRaidMainAssistTargetID(nAssist)) {
+				if (AssistID == pSpawn->SpawnID) {
+					return true;
+				}
+			}
+		}
+	}
+    return false;
+}
