@@ -1926,8 +1926,14 @@ bool MQ2BuffType::GETMEMBER()
 		{
 			if (pSpell->SpellType != 0)
 			{
-				Dest.DWord = pBuff->DamageAbsorbRemaining;
+				Dest.DWord = 0;
 				Dest.Type = pIntType;
+				LONG slots = GetSpellNumEffects(pSpell);
+				for (LONG i = 0; i < slots; i++) {
+					LONG attrib = GetSpellAttrib(pSpell, i);
+					if (attrib == 55 || attrib == 78 || attrib == 161 || attrib == 162 || attrib == 450 || attrib == 451 || attrib == 452)
+						Dest.DWord += pBuff->SlotData[i];
+				}
 				return true;
 			}
 		}
@@ -1936,8 +1942,14 @@ bool MQ2BuffType::GETMEMBER()
 		if (PSPELL pSpell = GetSpellByID(pBuff->SpellID))
 		{
 			if (pSpell->SpellType == 0) {
-				Dest.DWord = pBuff->Counters;
+				Dest.DWord = 0;
 				Dest.Type = pIntType;
+				LONG slots = GetSpellNumEffects(pSpell);
+				for (LONG i = 0; i < slots; i++) {
+					LONG attrib = GetSpellAttrib(pSpell, i);
+					if (attrib == 35 || attrib == 36 || attrib == 116 || attrib == 369)
+						Dest.DWord += pBuff->SlotData[i];
+				}
 				return true;
 			}
 		}
@@ -3619,8 +3631,14 @@ bool MQ2CharacterType::GETMEMBER()
 		{
 			for (unsigned long k = 0; k<NUM_LONG_BUFFS; k++)
 				if (PSPELL pSpell = GetSpellByID(GetCharInfo2()->Buff[k].SpellID))
-					if (pSpell->SpellType == 0 && GetCharInfo2()->Buff[k].DamageAbsorbRemaining)
-						Dest.DWord += GetCharInfo2()->Buff[k].DamageAbsorbRemaining;
+					if (pSpell->SpellType == 0) {
+						LONG slots = GetSpellNumEffects(pSpell);
+						for (LONG i = 0; i < slots; i++) {
+							LONG attrib = GetSpellAttrib(pSpell, i);
+							if (attrib == 35 || attrib == 36 || attrib == 116 || attrib == 369)
+								Dest.DWord += GetCharInfo2()->Buff[k].SlotData[i];
+						}
+					}
 		}
 		Dest.Type = pIntType;
 		return true;
