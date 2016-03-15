@@ -747,7 +747,7 @@ typedef struct _CONTENTS {
 } CONTENTS, *PCONTENTS;
 
 // Size 0x58 20110810 - dkaa
-// Size 0x?? 20150326 - demonstar55
+// Size 0x58 20150326 - demonstar55
 typedef struct _SPELLBUFF {
 /*0x00*/    BYTE      Unknown0x0;
 /*0x01*/    BYTE      Level;
@@ -759,10 +759,7 @@ typedef struct _SPELLBUFF {
 /*0x10*/    DWORD     Unknown0x10;
 /*0x14*/    DWORD     HitCount;
 /*0x18*/    BYTE      Unknown0x18[0x10];
-/*0x28*/    DWORD     DamageAbsorbRemaining;
-/*0x2c*/    DWORD     Unknown0x2c;
-/*0x30*/    DWORD     Counters;
-/*0x34*/    BYTE      Unknown0x34[0x24];
+/*0x28*/    DWORD     SlotData[0xC]; // used for book keeping of various effects (debuff counter, rune/vie damage remaining)
 /*0x58*/
 } SPELLBUFF, *PSPELLBUFF;
 
