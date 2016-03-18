@@ -107,16 +107,14 @@ public:
     int RemoveWnd_Detour(class CXWnd *pWnd)
     {
 		if (pWnd) {
-			for (std::map<CXWnd*, _WindowInfo>::iterator N = WindowList.begin(); N != WindowList.end(); N++) {
-				if (N->first == pWnd) {
-					std::string Name = N->second.Name;
-					MakeLower(Name);
-					if (WindowMap.find(Name) != WindowMap.end()) {
-						WindowMap.erase(Name);
-					}
-					WindowList.erase(N);
-					break;
+			auto N = WindowList.find(pWnd);
+			if (N != WindowList.end()) {
+				std::string Name = N->second.Name;
+				MakeLower(Name);
+				if (WindowMap.find(Name) != WindowMap.end()) {
+					WindowMap.erase(Name);
 				}
+				WindowList.erase(N);
 			}
 		}
         return RemoveWnd_Trampoline(pWnd);
