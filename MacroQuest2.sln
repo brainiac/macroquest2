@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.25914.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Main", "MQ2Main\MQ2Main.vcxproj", "{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}"
 EndProject
@@ -57,6 +57,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Camera", "MQ2Camera\MQ2Camera.vcxproj", "{F96C4FD8-B3A8-4FE5-9B34-E171EF5CBA60}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Webmail", "MQ2Webmail\MQ2Webmail.vcxproj", "{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Py", "MQ2Py\MQ2Py.vcxproj", "{52975F5A-B1BA-4598-A41D-9B53D56105EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -156,6 +158,10 @@ Global
 		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Debug|Win32.Build.0 = Debug|Win32
 		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Release|Win32.ActiveCfg = Release|Win32
 		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Release|Win32.Build.0 = Release|Win32
+		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Debug|Win32.Build.0 = Debug|Win32
+		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Release|Win32.ActiveCfg = Release|Win32
+		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
