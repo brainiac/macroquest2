@@ -717,7 +717,7 @@ bool SendListSelect(PCHAR WindowName, PCHAR ScreenID, DWORD Value)
 			CXPoint combopt=comborect.CenterPoint(); 
 			((CComboWnd*)pList)->SetChoice(Value);
 			((CXWnd*)pList)->HandleLButtonDown(&combopt,0);
-			CListWnd*pListWnd = (CListWnd*)((CListWnd*)pList)->Items;
+			CListWnd*pListWnd = ((CComboWnd*)pList)->pListWnd;
 			int index = pListWnd->GetCurSel();
 			CXRect listrect=pListWnd->GetItemRect(index,0);
 			CXPoint listpt=listrect.CenterPoint();
@@ -741,7 +741,7 @@ bool SendListSelect2(CXWnd *pList, LONG ListIndex)
 		return false;
 	}
 	if (pList->GetType() == UI_Listbox) {
-		if (((CListWnd*)pList)->Items >= ListIndex) {
+		if ((LONG)((CListWnd*)pList)->ItemsArray.Count >= ListIndex) {
 			((CListWnd*)pList)->SetCurSel(ListIndex);
 			int index = ((CListWnd*)pList)->GetCurSel();
 			((CListWnd*)pList)->EnsureVisible(index);
@@ -756,8 +756,8 @@ bool SendListSelect2(CXWnd *pList, LONG ListIndex)
 			return false;
 		}
 	} else if (pList->GetType() == UI_Combobox)	{
-		if (CListWnd*pListWnd = (CListWnd*)((CListWnd*)pList)->Items) {
-			if (pListWnd->Items >= ListIndex) {
+		if (CListWnd*pListWnd = ((CComboWnd*)pList)->pListWnd) {
+			if (pListWnd->ItemsArray.Count >= ListIndex) {
 				CXRect comborect = pList->GetScreenRect();
 				CXPoint combopt = comborect.CenterPoint();
 				((CComboWnd*)pList)->SetChoice(ListIndex);
@@ -804,9 +804,9 @@ bool SendComboSelect(PCHAR WindowName, PCHAR ScreenID, DWORD Value)
         {
 			CXRect comborect=((CXWnd*)pCombo)->GetScreenRect(); 
 			CXPoint combopt=comborect.CenterPoint(); 
-			((CComboWnd*)pCombo)->SetChoice(Value);
+			pCombo->SetChoice(Value);
 			((CXWnd*)pCombo)->HandleLButtonDown(&combopt,0);
-			CListWnd*pListWnd = (CListWnd*)pCombo->Items;
+			CListWnd*pListWnd = pCombo->pListWnd;
 			int index = pListWnd->GetCurSel();
 			CXRect listrect=pListWnd->GetItemRect(index,0);
 			CXPoint listpt=listrect.CenterPoint();
@@ -1323,8 +1323,11 @@ int ItemNotify(int argc, char *argv[])
 					WriteChatf("There was no container in slot %d",invslot);
 					RETURN(0);
 				}
-				;
-				PickupOrDropItem(type,FindItemBySlot(invslot,bagslot));
+				if (ItemOnCursor()) {
+					DropItem(type,invslot, bagslot);
+				} else {
+					PickupItem(type, FindItemBySlot(invslot, bagslot));
+				}
 				RETURN(0);
 			} else if(pNotification && !_strnicmp(pNotification,"rightmouseup",12)) {//we fake it with /useitem
 				if ( HasExpansion(EXPANSION_VoA) )
@@ -1399,7 +1402,11 @@ int ItemNotify(int argc, char *argv[])
 			//lets check:
 			if(PCONTENTS ptheitem = FindItemByName(szArg1,1)) {
 				if(pNotification && !_strnicmp(pNotification,"leftmouseup",11)) {
-					PickupOrDropItem(eItemContainerPossessions,ptheitem);
+					if (ItemOnCursor()) {
+						DropItem(eItemContainerPossessions, bagslot, invslot);
+					} else {
+						PickupItem(eItemContainerPossessions, ptheitem);
+					}
 				} else if(pNotification && !_strnicmp(pNotification,"rightmouseup",12)) {//we fake it with /useitem
 					//hmm better check if its a spell cause then it means we should mem it
 					PITEMINFO pClicky = GetItemFromContents(ptheitem);
@@ -1407,7 +1414,7 @@ int ItemNotify(int argc, char *argv[])
 						if (IsItemInsideContainer(ptheitem)) {
 							OpenContainer(ptheitem, true);
 						}
-						pSlot = (PEQINVSLOT)pInvSlotMgr->FindInvSlot(ptheitem->Contents.ItemSlot, ptheitem->Contents.ItemSlot2);
+						pSlot = (PEQINVSLOT)pInvSlotMgr->FindInvSlot(ptheitem->GlobalIndex.Index.Slot1, ptheitem->GlobalIndex.Index.Slot2);
 						if (!pSlot || !pSlot->pInvSlotWnd || !SendWndClick2((CXWnd*)pSlot->pInvSlotWnd, pNotification)) {
 							WriteChatf("Could not mem spell, most likely cause bag wasnt open and i didnt find it");
 						}

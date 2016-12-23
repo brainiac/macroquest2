@@ -20,7 +20,6 @@
 
 
 #include "MQ2Main.h"
-
 enum UIType CXWnd::GetType()
 {
     if (CXMLData *pXMLData=GetXMLData())
@@ -946,7 +945,7 @@ FUNCTION_AT_ADDRESS(void  CChatManager::CreateChatWindow(void),CChatManager__Cre
 FUNCTION_AT_ADDRESS(void  CChatManager::CreateChatWindow(char *,char *,int,int,int,char *,int),CChatManager__CreateChatWindow1);
 #endif
 #ifdef CChatManager__FreeChatWindow_x
-FUNCTION_AT_ADDRESS(void  CChatManager::FreeChatWindow(class CChatWindow *),CChatManager__FreeChatWindow);
+FUNCTION_AT_ADDRESS(void CChatManager::FreeChatWindow(CChatWindow *),CChatManager__FreeChatWindow);
 #endif
 #ifdef CChatManager__GetActiveChatWindow_x
 FUNCTION_AT_ADDRESS(class CChatWindow *  CChatManager::GetActiveChatWindow(void),CChatManager__GetActiveChatWindow);
@@ -972,9 +971,6 @@ FUNCTION_AT_ADDRESS(void  CChatManager::ClearChannelMaps(class CChatWindow *),CC
 #ifdef CChatManager__SetActiveChatWindow_x
 FUNCTION_AT_ADDRESS(void  CChatManager::SetActiveChatWindow(class CChatWindow *),CChatManager__SetActiveChatWindow);
 #endif
-#ifdef CChatManager__SetLockedActiveChatWindow_x
-FUNCTION_AT_ADDRESS(void  CChatManager::SetLockedActiveChatWindow(class CChatWindow *),CChatManager__SetLockedActiveChatWindow);
-#endif
 #ifdef CChatManager__GetRGBAFromIndex_x
 FUNCTION_AT_ADDRESS(unsigned long  CChatManager::GetRGBAFromIndex(int),CChatManager__GetRGBAFromIndex);
 #endif
@@ -989,6 +985,12 @@ FUNCTION_AT_ADDRESS(void  CChatManager::UpdateTellMenus(class CChatWindow *),CCh
 #endif
 #ifdef CChatManager__GetAllVisibleText_x
 FUNCTION_AT_ADDRESS(class CXStr  CChatManager::GetAllVisibleText(class CXStr),CChatManager__GetAllVisibleText);
+#endif
+#ifdef CChatManager__GetLockedActiveChatWindow_x
+FUNCTION_AT_ADDRESS(CChatWindow *CChatManager::GetLockedActiveChatWindow(void),CChatManager__GetLockedActiveChatWindow);
+#endif
+#ifdef CChatManager__SetLockedActiveChatWindow_x
+FUNCTION_AT_ADDRESS(void CChatManager::SetLockedActiveChatWindow(CChatWindow *),CChatManager__SetLockedActiveChatWindow);
 #endif
 #ifdef CChatWindow__GetOutputWnd_x
 FUNCTION_AT_ADDRESS(class CStmlWnd *  CChatWindow::GetOutputWnd(void),CChatWindow__GetOutputWnd);
@@ -1189,13 +1191,13 @@ FUNCTION_AT_ADDRESS(int  CContextMenu::AddMenuItem(class CXStr const &,unsigned 
 FUNCTION_AT_ADDRESS(int  CContextMenu::AddSeparator(void),CContextMenu__AddSeparator);
 #endif
 #ifdef CContextMenu__RemoveAllMenuItems_x
-FUNCTION_AT_ADDRESS(void  CContextMenu::RemoveAllMenuItems(void),CContextMenu__RemoveAllMenuItems);
+FUNCTION_AT_ADDRESS(void CContextMenu::RemoveAllMenuItems(void),CContextMenu__RemoveAllMenuItems);
 #endif
 #ifdef CContextMenu__EnableMenuItem_x
 FUNCTION_AT_ADDRESS(void  CContextMenu::EnableMenuItem(int,bool),CContextMenu__EnableMenuItem);
 #endif
 #ifdef CContextMenu__CheckMenuItem_x
-FUNCTION_AT_ADDRESS(void  CContextMenu::CheckMenuItem(int,bool,bool),CContextMenu__CheckMenuItem);
+FUNCTION_AT_ADDRESS(void CContextMenu::CheckMenuItem(int,bool,bool),CContextMenu__CheckMenuItem);
 #endif
 #ifdef CContextMenu__Activate_x
 FUNCTION_AT_ADDRESS(void  CContextMenu::Activate(class CXPoint,int,int),CContextMenu__Activate);
@@ -1247,6 +1249,12 @@ FUNCTION_AT_ADDRESS(bool  CCursorAttachment::IsOkToActivate(int),CCursorAttachme
 #endif
 #ifdef CCursorAttachment__RemoveAttachment_x
 FUNCTION_AT_ADDRESS(bool  CCursorAttachment::RemoveAttachment(void),CCursorAttachment__RemoveAttachment);
+#endif
+#ifdef CCursorAttachment__AttachToCursor_x
+FUNCTION_AT_ADDRESS(void CCursorAttachment::AttachToCursor(class CTextureAnimation *overlay, class CTextureAnimation *bg, int type, int index, EqItemGuid &itemGuid, int itemID, char const *name, int qty),CCursorAttachment__AttachToCursor);
+#endif
+#ifdef CCursorAttachment__Deactivate_x
+FUNCTION_AT_ADDRESS(void CCursorAttachment::Deactivate(void),CCursorAttachment__Deactivate);
 #endif
 #ifdef CTextureAnimation__Reset_x
 FUNCTION_AT_ADDRESS(void  CTextureAnimation::Reset(void),CTextureAnimation__Reset);
@@ -1968,6 +1976,12 @@ FUNCTION_AT_ADDRESS( CItemDisplayWnd::CItemDisplayWnd(class CXWnd *),CItemDispla
 #endif
 #ifdef CItemDisplayWnd__UpdateStrings_x
 FUNCTION_AT_ADDRESS(void  CItemDisplayWnd::UpdateStrings(void),CItemDisplayWnd__UpdateStrings);
+#endif
+#ifdef CItemDisplayWnd__InsertAugmentRequest_x
+FUNCTION_AT_ADDRESS(void CItemDisplayWnd::InsertAugmentRequest(int AugSlot),CItemDisplayWnd__InsertAugmentRequest);
+#endif
+#ifdef CItemDisplayWnd__RemoveAugmentRequest_x
+FUNCTION_AT_ADDRESS(void CItemDisplayWnd::RemoveAugmentRequest(int AugSlot),CItemDisplayWnd__RemoveAugmentRequest);
 #endif
 #ifdef CItemDisplayWnd__SetItem_x
 FUNCTION_AT_ADDRESS(void  CItemDisplayWnd::SetItem(class EQ_Item *,bool),CItemDisplayWnd__SetItem);
@@ -3089,13 +3103,21 @@ FUNCTION_AT_ADDRESS(void  CVideoModesWnd::RestoreOldMode(void),CVideoModesWnd__R
 FUNCTION_AT_ADDRESS( CGuild::CGuild(void),CGuild__CGuild);
 #endif
 #ifdef CGuild__GetGuildName_x
-FUNCTION_AT_ADDRESS(char * CGuild::GetGuildName(int,int),CGuild__GetGuildName);
+#ifndef EMU
+FUNCTION_AT_ADDRESS(char * CGuild::GetGuildName(__int64),CGuild__GetGuildName);
+#else
+FUNCTION_AT_ADDRESS(char * CGuild::GetGuildName(DWORD), CGuild__GetGuildName);
+#endif
+#endif
+#ifdef CGuild__GetGuildIndex_x
+#ifndef EMU
+FUNCTION_AT_ADDRESS(__int64 CGuild::GetGuildIndex(char *),CGuild__GetGuildIndex);
+#else
+FUNCTION_AT_ADDRESS(int CGuild::GetGuildIndex(char *),CGuild__GetGuildIndex);
+#endif
 #endif
 #ifdef CGuild__ValidGuildName_x
 FUNCTION_AT_ADDRESS(bool  CGuild::ValidGuildName(int),CGuild__ValidGuildName);
-#endif
-#ifdef CGuild__GetGuildIndex_x
-FUNCTION_AT_ADDRESS(int CGuild::GetGuildIndex(char *),CGuild__GetGuildIndex);
 #endif
 #ifdef CGuild__SendPublicCommentChange_x
 FUNCTION_AT_ADDRESS(void  CGuild::SendPublicCommentChange(char *,char *),CGuild__SendPublicCommentChange);
@@ -3148,12 +3170,6 @@ FUNCTION_AT_ADDRESS(void  CGuild::ChangeGuildMemberName(char *),CGuild__ChangeGu
 #ifdef CGuild__FindMemberByName_x
 FUNCTION_AT_ADDRESS(class GuildMember *  CGuild::FindMemberByName(char *),CGuild__FindMemberByName);
 #endif
-/*#ifdef CGuild__GetGuildName_x
-FUNCTION_AT_ADDRESS(char *  CGuild::GetGuildName(int index, int index2),CGuild__GetGuildName);
-#endif
-#ifdef CGuild__GetGuildIndex_x
-FUNCTION_AT_ADDRESS(int CGuild::GetGuildIndex(char *name),CGuild__GetGuildIndex);
-#endif*/
 #ifdef GuildMember__GuildMember_x
 FUNCTION_AT_ADDRESS( GuildMember::GuildMember(void),GuildMember__GuildMember);
 #endif
@@ -4712,7 +4728,11 @@ FUNCTION_AT_ADDRESS(int  EQ_PC::GetCombatAbility(int),EQ_PC__GetCombatAbility);
 FUNCTION_AT_ADDRESS(class PcZoneClient *EQ_PC::GetPcZoneClient(void)const,EQ_PC__GetPcZoneClient);
 #endif
 #ifdef EQ_PC__GetCombatAbilityTimer_x
+#ifndef EMU
 FUNCTION_AT_ADDRESS(unsigned long  EQ_PC::GetCombatAbilityTimer(int,int),EQ_PC__GetCombatAbilityTimer);
+#else
+FUNCTION_AT_ADDRESS(unsigned long  EQ_PC::GetCombatAbilityTimer(int),EQ_PC__GetCombatAbilityTimer);
+#endif
 #endif
 #ifdef EQ_PC__HasLoreItem_x
 FUNCTION_AT_ADDRESS(bool EQ_PC::HasLoreItem(class EQ_Item *,int,int,int,int),EQ_PC__HasLoreItem);
@@ -5958,7 +5978,10 @@ FUNCTION_AT_ADDRESS(void  CEverQuest::clr_chat_input(void),CEverQuest__clr_chat_
 #endif
 #ifdef CEverQuest__dsp_chat_x
 FUNCTION_AT_ADDRESS(void  CEverQuest::dsp_chat(char const *,int,bool,bool),CEverQuest__dsp_chat);
-void CEverQuest::dsp_chat(char const *a, int b, bool c) { dsp_chat(a, b, c, 1); }
+void CEverQuest::dsp_chat(char const *line, int color, bool bLogisok) { dsp_chat(line, color, bLogisok, true); }
+#endif
+#ifdef CEverQuest__OutputTextToLog_x
+FUNCTION_AT_ADDRESS(void CEverQuest::OutputTextToLog(const char*Text),CEverQuest__OutputTextToLog);
 #endif
 #ifdef CEverQuest__DoTellWindow_x
 FUNCTION_AT_ADDRESS(void CEverQuest::DoTellWindow(char *message,char *name,char *name2,void *unknown,int color,bool b),CEverQuest__DoTellWindow);
@@ -6174,7 +6197,11 @@ FUNCTION_AT_ADDRESS(void  CEverQuest::IssueLfgPlayerQuery(struct LfgPlayerQuery 
 FUNCTION_AT_ADDRESS(void  CEverQuest::IssueLfgGroupQuery(struct LfgGroupQuery *),CEverQuest__IssueLfgGroupQuery);
 #endif
 #ifdef CEverQuest__IssuePetCommand_x
-FUNCTION_AT_ADDRESS(void  CEverQuest::IssuePetCommand(enum PetCommandType,int,bool,bool),CEverQuest__IssuePetCommand);
+#ifndef EMU
+FUNCTION_AT_ADDRESS(void  CEverQuest::IssuePetCommand(ePetCommandType,int,bool,bool),CEverQuest__IssuePetCommand);
+#else
+FUNCTION_AT_ADDRESS(void  CEverQuest::IssuePetCommand(ePetCommandType,int,bool),CEverQuest__IssuePetCommand);
+#endif
 #endif
 #ifdef CEverQuest__LootCorpse_x
 FUNCTION_AT_ADDRESS(int  CEverQuest::LootCorpse(class EQPlayer *,int),CEverQuest__LootCorpse);
@@ -7403,6 +7430,9 @@ FUNCTION_AT_ADDRESS(class CXWnd *  CXWnd::SetFocus(void),CXWnd__SetFocus);
 #ifdef CXWnd__ClrFocus_x
 FUNCTION_AT_ADDRESS(void  CXWnd::ClrFocus(void),CXWnd__ClrFocus);
 #endif
+#ifdef CXWnd__Destroy_x
+FUNCTION_AT_ADDRESS(int CXWnd::Destroy(void),CXWnd__Destroy);
+#endif
 #ifdef CXWnd__HasFocus_x
 FUNCTION_AT_ADDRESS(bool  CXWnd::HasFocus(void)const ,CXWnd__HasFocus);
 #endif
@@ -7550,6 +7580,9 @@ FUNCTION_AT_ADDRESS(int  CXWnd::Resize(int,int),CXWnd__Resize);
 #endif
 #ifdef CXWnd__GetChildItem_x
 FUNCTION_AT_ADDRESS(class CXWnd *  CXWnd::GetChildItem(CXStr const &),CXWnd__GetChildItem);
+#endif
+#ifdef CXWnd__SetParent_x
+FUNCTION_AT_ADDRESS(CXWnd * CXWnd::SetParent(CXWnd *),CXWnd__SetParent);
 #endif
 #ifdef CXWnd__SetZLayer_x
 FUNCTION_AT_ADDRESS(void  CXWnd::SetZLayer(int),CXWnd__SetZLayer);
@@ -7887,10 +7920,10 @@ FUNCTION_AT_ADDRESS(void  CListWnd::EnsureVisible(int),CListWnd__EnsureVisible);
 FUNCTION_AT_ADDRESS(class CXRect  CListWnd::GetItemRect(int,int)const ,CListWnd__GetItemRect);
 #endif
 #ifdef CListWnd__GetItemAtPoint_x
-FUNCTION_AT_ADDRESS(int  CListWnd::GetItemAtPoint(class CXPoint)const ,CListWnd__GetItemAtPoint);
+FUNCTION_AT_ADDRESS(int CListWnd::GetItemAtPoint(CXPoint *)const ,CListWnd__GetItemAtPoint);
 #endif
 #ifdef CListWnd__GetItemAtPoint1_x
-FUNCTION_AT_ADDRESS(void  CListWnd::GetItemAtPoint(class CXPoint,int *,int *)const ,CListWnd__GetItemAtPoint1);
+FUNCTION_AT_ADDRESS(void  CListWnd::GetItemAtPoint(CXPoint *,int *,int *)const ,CListWnd__GetItemAtPoint1);
 #endif
 #ifdef CListWnd__CloseAndUpdateEditWindow_x
 FUNCTION_AT_ADDRESS(void  CListWnd::CloseAndUpdateEditWindow(void),CListWnd__CloseAndUpdateEditWindow);
@@ -7975,6 +8008,9 @@ FUNCTION_AT_ADDRESS( CLabelTemplate::CLabelTemplate(class CParamLabel *),CLabelT
 #endif
 #ifdef CLargeDialogWnd__Open_x
 FUNCTION_AT_ADDRESS(void CLargeDialogWnd::Open(bool bYesNoEnabled, class CXStr DialogText, unsigned long closeTimer/*0 means never*/, class CXStr DialogTitle, bool bShowVolumeControls, class CXStr YesText, class CXStr NoText),CLargeDialogWnd__Open);
+#endif
+#ifdef CWndDisplayManager__FindWindowA_x
+FUNCTION_AT_ADDRESS(int CWndDisplayManager::FindWindowA(bool bNewWnd),CWndDisplayManager__FindWindowA);
 #endif
 #ifdef CSTMLboxTemplate__CSTMLboxTemplate_x
 FUNCTION_AT_ADDRESS( CSTMLboxTemplate::CSTMLboxTemplate(class CParamSTMLbox *),CSTMLboxTemplate__CSTMLboxTemplate);
@@ -8228,9 +8264,6 @@ FUNCTION_AT_ADDRESS( CTabWnd::CTabWnd(class CXWnd *,unsigned __int32,class CXRec
 #ifdef CTabWnd__GetNumTabs_x
 FUNCTION_AT_ADDRESS(int  CTabWnd::GetNumTabs(void)const ,CTabWnd__GetNumTabs);
 #endif
-#ifdef CTabWnd__GetCurrentTabIndex_x
-FUNCTION_AT_ADDRESS(int  CTabWnd::GetCurrentTabIndex(void)const ,CTabWnd__GetCurrentTabIndex);
-#endif
 #ifdef CTabWnd__GetCurrentPage_x
 FUNCTION_AT_ADDRESS(class CPageWnd *  CTabWnd::GetCurrentPage(void)const ,CTabWnd__GetCurrentPage);
 #endif
@@ -8266,13 +8299,16 @@ FUNCTION_AT_ADDRESS(void  CTabWnd::SetPageRect(class CXRect),CTabWnd__SetPageRec
 FUNCTION_AT_ADDRESS(int  CXWnd::Tile(bool),CXWnd__Tile);
 #endif
 #ifdef CTabWnd__UpdatePage_x
-FUNCTION_AT_ADDRESS(void  CTabWnd::UpdatePage(void),CTabWnd__UpdatePage);
+FUNCTION_AT_ADDRESS(void CTabWnd::UpdatePage(void),CTabWnd__UpdatePage);
+#endif
+#ifdef CTabWnd__GetPageFromTabIndex_x
+FUNCTION_AT_ADDRESS(CPageWnd *CTabWnd::GetPageFromTabIndex(int)const,CTabWnd__GetPageFromTabIndex);
+#endif
+#ifdef CTabWnd__GetCurrentTabIndex_x
+FUNCTION_AT_ADDRESS(int CTabWnd::GetCurrentTabIndex(void)const,CTabWnd__GetCurrentTabIndex);
 #endif
 #ifdef CTabWnd__IndexInBounds_x
 FUNCTION_AT_ADDRESS(bool  CTabWnd::IndexInBounds(int)const ,CTabWnd__IndexInBounds);
-#endif
-#ifdef CTabWnd__GetPageFromTabIndex_x
-FUNCTION_AT_ADDRESS(class CPageWnd *  CTabWnd::GetPageFromTabIndex(int)const ,CTabWnd__GetPageFromTabIndex);
 #endif
 #ifdef CTabWnd__GetPageFromTabPoint_x
 FUNCTION_AT_ADDRESS(class CPageWnd *  CTabWnd::GetPageFromTabPoint(class CXPoint)const ,CTabWnd__GetPageFromTabPoint);
@@ -8280,11 +8316,14 @@ FUNCTION_AT_ADDRESS(class CPageWnd *  CTabWnd::GetPageFromTabPoint(class CXPoint
 #ifdef CTabWnd__DrawTab_x
 FUNCTION_AT_ADDRESS(int  CTabWnd::DrawTab(int)const ,CTabWnd__DrawTab);
 #endif
+#ifdef CTabWnd__DrawCurrentPage_x
+FUNCTION_AT_ADDRESS(int  CTabWnd::DrawCurrentPage(void)const ,CTabWnd__DrawCurrentPage);
+#endif
 #ifdef CPageWnd__GetTabText_x
 FUNCTION_AT_ADDRESS(class CXStr  CPageWnd::GetTabText(void)const ,CPageWnd__GetTabText);
 #endif
-#ifdef CTabWnd__DrawCurrentPage_x
-FUNCTION_AT_ADDRESS(int  CTabWnd::DrawCurrentPage(void)const ,CTabWnd__DrawCurrentPage);
+#ifdef CPageWnd__SetTabText_x
+FUNCTION_AT_ADDRESS(void CPageWnd::SetTabText(CXStr &)const,CPageWnd__SetTabText);
 #endif
 #ifdef CWebManager__CreateHtmlWnd_x
 FUNCTION_AT_ADDRESS(int  CWebManager::CreateHtmlWnd(void*, void*, void*, char, void*),CWebManager__CreateHtmlWnd);
@@ -9056,6 +9095,9 @@ FUNCTION_AT_ADDRESS(class CSliderDrawTemplate *  CSidlManager::FindSliderDrawTem
 #endif
 #ifdef CSidlManager__CreateXWndFromTemplate_x
 FUNCTION_AT_ADDRESS(class CXWnd *  CSidlManager::CreateXWndFromTemplate(class CXWnd *,class CControlTemplate *),CSidlManager__CreateXWndFromTemplate);
+#endif
+#ifdef CSidlManager__CreateXWndFromTemplate1_x
+FUNCTION_AT_ADDRESS(class CXWnd * CSidlManager::CreateXWndFromTemplate(CXWnd *,CXStr &),CSidlManager__CreateXWndFromTemplate1);
 #endif
 #ifdef CTAFrameDraw__GetAnimation_x
 FUNCTION_AT_ADDRESS(class CTextureAnimation *  CTAFrameDraw::GetAnimation(int)const ,CTAFrameDraw__GetAnimation);

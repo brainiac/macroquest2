@@ -981,7 +981,7 @@ TLO(dataSelectedItem)
 		else {//im working on this -eqmule 2013 dec 14
 			PCONTENTS pItem = FindItemByName("Worn Totem");
 			if (pItem) {
-				CInvSlot *pSlot = pInvSlotMgr->FindInvSlot(pItem->Contents.ItemSlot);
+				CInvSlot *pSlot = pInvSlotMgr->FindInvSlot(pItem->GlobalIndex.Index.Slot1);
 				Sleep(0);
 			}
 		}
@@ -1846,7 +1846,7 @@ TLO(dataTask)
 					CHAR szTemp[MAX_STRING] = { 0 };
 					strcpy_s(szTemp, GETFIRST());
 					_strlwr_s(szTemp);
-					for (LONG i = 0; i < clist->Items; i++) {
+					for (LONG i = 0; i < clist->ItemsArray.Count; i++) {
 						clist->GetItemText(&Str, i, 2);
 						GetCXStr(Str.Ptr, szOut, MAX_STRING);
 						_strlwr_s(szOut);

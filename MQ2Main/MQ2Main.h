@@ -11,7 +11,8 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ******************************************************************************/
-#pragma pack(4)
+#pragma pack(push)
+#pragma pack(8)
 #define VersionString __ExpectedVersionDate
 #define TimeString __ExpectedVersionTime
 #define DebugHeader "[MQ2]"
@@ -569,12 +570,13 @@ EQLIB_API DWORD GetDeityTeamByID(DWORD DeityID);
 EQLIB_API DWORD ConColor(PSPAWNINFO pSpawn);
 
 #if !defined(EMU)
-EQLIB_API PCHAR GetGuildByID(DWORD GuildID, DWORD GuildID2 = 2);
+EQLIB_API PCHAR GetGuildByID(__int64 GuildID);
+EQLIB_API __int64 GetGuildIDByName(PCHAR szGuild);
 #else
 EQLIB_API PCHAR GetGuildByID(DWORD GuildID);
+EQLIB_API DWORD GetGuildIDByName(PCHAR szGuild);
 #endif
 
-EQLIB_API DWORD GetGuildIDByName(PCHAR szGuild);
 EQLIB_API PCONTENTS GetEnviroContainer();
 EQLIB_API PEQCONTAINERWINDOW FindContainerForContents(PCONTENTS pContents);
 EQLIB_API FLOAT FindSpeed(PSPAWNINFO pSpawn);
@@ -712,13 +714,15 @@ EQLIB_API DWORD       GetSpellBuffTimer(DWORD SpellID);
 EQLIB_API bool        HasExpansion(DWORD nExpansion);
 EQLIB_API VOID		  ListMercAltAbilities();
 EQLIB_API PCONTENTS	  FindItemByName(PCHAR pName, BOOL bExact = false);
-EQLIB_API PCONTENTS	  FindItemByID(DWORD ItemID);
-EQLIB_API PCONTENTS	  FindItemBySlot(WORD InvSlot, WORD BagSlot = 0xFFFF, ItemContainerInstance location = eItemContainerPossessions);
+EQLIB_API PCONTENTS	  FindItemByID(int ItemID);
+EQLIB_API PCONTENTS	  FindItemBySlot(short InvSlot, short BagSlot = -1, ItemContainerInstance location = eItemContainerPossessions);
 EQLIB_API PCONTENTS   FindBankItemByName(char *pName, BOOL bExact);
 EQLIB_API PCONTENTS   FindBankItemByID(int ID);
-EQLIB_API PEQINVSLOT  GetInvSlot(DWORD type, WORD invslot, WORD bagslot = 0xFFFF);
+EQLIB_API PEQINVSLOT  GetInvSlot(DWORD type, short Invslot, short Bagslot = -1);
 EQLIB_API BOOL		  IsItemInsideContainer(PCONTENTS pItem);
-EQLIB_API BOOL		  PickupOrDropItem(ItemContainerInstance type, PCONTENTS pItem);
+EQLIB_API BOOL		  PickupItem(ItemContainerInstance type, PCONTENTS pItem);
+EQLIB_API BOOL		  DropItem(ItemContainerInstance type, short InvSlot, short Bagslot);
+EQLIB_API bool		  ItemOnCursor();
 EQLIB_API BOOL		  OpenContainer(PCONTENTS pItem, bool hidden, bool flag = 0);
 EQLIB_API BOOL		  CloseContainer(PCONTENTS pItem);
 EQLIB_API int		  GetTargetBuffByCategory(DWORD category, DWORD classmask = 0, int startslot = 0);
@@ -796,6 +800,11 @@ LEGACY_API BOOL Calculate(PCHAR szFormula, DOUBLE& Dest);
 #define XKF_LALT                4
 #define XKF_RALT                8
 
+#define CHATMENU_NEW			42
+#define CHATMENU_ALWAYS_CHAT_HERE	43
+#define CHATMENU_RENAME			44
+#define CHATMENU_SCROLLBAR		45
+
 //#define MAX_ITEM4xx             416
 
 //#define MAX_WEAPONS             0x000000ff
@@ -819,4 +828,6 @@ inline PCHAR ISXEQArgToMQ2Arg(int argc, char *argv[], char *szTemp, size_t size)
 		szTemp[len - 1] = '\0';
 	return &szTemp[0];
 }
-#pragma pack()
+#define LODWORD(_qw)    ((DWORD)(_qw))
+#define HIDWORD(_qw)    ((DWORD)(((_qw) >> 32) & 0xffffffff))
+#pragma pack(pop)

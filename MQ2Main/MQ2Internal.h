@@ -61,7 +61,11 @@ namespace MQ2Internal {
         CHAR szRace[MAX_STRING];
         CHAR szClass[MAX_STRING];
         CHAR szLight[MAX_STRING];
-        DWORD GuildID;
+		#ifndef EMU
+		__int64 GuildID;
+		#else
+		DWORD GuildID;
+		#endif
         BOOL bSpawnID;
         BOOL bNotNearAlert;
         BOOL bNearAlert;
@@ -176,7 +180,7 @@ namespace MQ2Internal {
         FLOAT Distance;
         DWORD Class;
         DWORD Race;
-        DWORD GuildID;
+        __int64 GuildID;
     } SWHOSORT, *PSWHOSORT;
 
     typedef struct _CONNECTION {
@@ -468,7 +472,8 @@ namespace MQ2Internal {
 		}
 		VOID FreeAlerts(DWORD List);
 	};
-
+	#pragma pack(push)
+	#pragma pack(4)
     class CCustomWnd : public CSidlScreenWnd
     {
     public:
@@ -523,16 +528,39 @@ namespace MQ2Internal {
 
         //    inline CXWnd *GetChildItem(const char *Name) {return CSidlScreenWnd::GetChildItem(Name);};
     };
+	#pragma pack(pop)
+	
 	class CCustomMenu : public CContextMenu
 	{
 	public:
 		CCustomMenu(CXRect rect):CContextMenu(0,0,rect)
 		{
-			this->ZeroMe = 0;
-			this->SetToMinus1 = 0xFFFFFFFF;
-			ZeroMemory(this->ZeroMeOut1,sizeof(this->ZeroMeOut1));
-			ZeroMemory(this->ZeroMeOut2,sizeof(this->ZeroMeOut2));
-			this->ZeroMeAsWell = 0;
+			this->CurSel = -1;
+			this->DownItem = -1;
+			this->SortCol = -1;
+			this->bSortAsc = true;
+			this->ScrollOffsetY = 0;
+			this->bOwnerDraw = false;
+			this->bCalcHeights = false;
+			//this->HeaderHeight = CTextureFont_GetHeight(3) + 4;
+			this->CRNormal = RGB(255, 255, 255);
+			this->WindowStyle |= 0x40;//add BORDER
+			this->WindowStyle &= (~0x400);//remove TRANSPARENT
+			this->WindowStyle |= 0x1;//add VSCROLL
+			this->WindowStyle |= 0x80000;//add AUTOVSCROLL
+			this->FirstVisibleLine = 0;
+			this->bFixedHeight = true;
+			//this->LineHeight =  CTextureFont_GetHeight(3);
+			this->pEditCell = 0;
+			//Add columns etc...
+			//
+			//
+			this->ListWndStyle = 0x00010000;//selectable
+			this->ZLayer = 1000;//default for contextmenus...
+			this->NumItems = 0;
+			this->CloseOnESC = false;
+			this->bEscapableLocked = true;
+
 			ReplacevfTable();
 		};
 
@@ -543,21 +571,21 @@ namespace MQ2Internal {
 		void ReplacevfTable()
         {
             PCCONTEXTMENUVFTABLE NewvfTable=new CCONTEXTMENUVFTABLE;
-            OldvfTable=((_CCONTEXTMENU*)this)->pvfTable;
+            OldvfTable=((CContextMenu*)this)->pvfTable;
             memcpy(NewvfTable,OldvfTable,sizeof(CCONTEXTMENUVFTABLE));
-            ((_CCONTEXTMENU*)this)->pvfTable=NewvfTable;
+            ((CContextMenu*)this)->pvfTable=NewvfTable;
         }
 
         void RemovevfTable()
         {
-            PCCONTEXTMENUVFTABLE NewvfTable=((_CCONTEXTMENU*)this)->pvfTable;
-            ((_CCONTEXTMENU*)this)->pvfTable=OldvfTable;
+            PCCONTEXTMENUVFTABLE NewvfTable=((CContextMenu*)this)->pvfTable;
+            ((CContextMenu*)this)->pvfTable=OldvfTable;
             delete NewvfTable;
         }
 
         void SetvfTable(DWORD index, DWORD value)
         {
-            DWORD* vtable=(DWORD*)((_CCONTEXTMENU*)this)->pvfTable;
+            DWORD* vtable=(DWORD*)((CContextMenu*)this)->pvfTable;
             vtable[index]=value;
         }
 		PCCONTEXTMENUVFTABLE OldvfTable;
