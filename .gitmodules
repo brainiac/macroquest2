@@ -1,0 +1,12 @@
+[submodule "MQ2Nav"]
+	path = MQ2Nav
+	url = git@github.com:brainiac/MQ2Nav.git
+	branch = develop
+[submodule "MQ2Camera"]
+	path = MQ2Camera
+	url = git@github.com:brainiac/MQ2Camera.git
+	branch = master
+[submodule "MQ2Py"]
+	path = MQ2Py
+	url = git@github.com:brainiac/MQ2Py.git
+	branch = master
