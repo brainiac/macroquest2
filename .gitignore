@@ -6,6 +6,7 @@
 *.sdf
 *.suo
 *.VC.opendb
+*.VC.db
 *.vcxproj.user
 *.user
 .vs/
@@ -16,3 +17,4 @@ ISXEQ*Intermediate
 MQ2Auth0.h
 Release/
 UpgradeLog.htm
+packages/
