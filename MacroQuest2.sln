@@ -92,6 +92,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Camera", "MQ2Camera\MQ2C
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Py", "MQ2Py\MQ2Py.vcxproj", "{52975F5A-B1BA-4598-A41D-9B53D56105EE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Test", "MQ2Test\MQ2Test.vcxproj", "{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -190,6 +192,10 @@ Global
 		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Debug|Win32.Build.0 = Debug|Win32
 		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Release|Win32.ActiveCfg = Release|Win32
 		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Release|Win32.Build.0 = Release|Win32
+		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Debug|Win32.Build.0 = Debug|Win32
+		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Release|Win32.ActiveCfg = Release|Win32
+		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
