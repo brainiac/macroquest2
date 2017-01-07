@@ -1,39 +1,73 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.25914.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Main", "MQ2Main\MQ2Main.vcxproj", "{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Chat", "MQ2Chat\MQ2Chat.vcxproj", "{D43171FB-8208-4E52-860A-6BAE2A2FA573}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Labels", "MQ2Labels\MQ2Labels.vcxproj", "{60814EE3-1457-44A9-82D8-DBFF1B924CE4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Map", "MQ2Map\MQ2Map.vcxproj", "{423463E0-D7B6-4EBC-A371-38F8255153C0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2ItemDisplay", "MQ2ItemDisplay\MQ2ItemDisplay.vcxproj", "{FC765D31-8E9E-4171-84E2-307CB8931E06}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2ChatWnd", "MQ2ChatWnd\MQ2ChatWnd.vcxproj", "{BBE410C2-F564-4564-951B-9FADE9BA5041}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Telnet", "MQ2Telnet\MQ2Telnet.vcxproj", "{1DA0A350-C188-4810-B903-3B603CA2E7D7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2EQBugFix", "MQ2EQBugFix\MQ2EQBugFix.vcxproj", "{E886F222-1A69-4352-906E-2999271C59A5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Irc", "MQ2Irc\MQ2Irc.vcxproj", "{8CF9409E-6F66-48B7-B370-0754F2184EB0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2EQIM", "MQ2EQIM\MQ2EQIM.vcxproj", "{B9BB2FA6-4C01-4A3C-920A-7B3D8C4E0DEE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Bzsrch", "MQ2Bzsrch\MQ2Bzsrch.vcxproj", "{E0A98D60-D694-4E6E-836B-E41AB5737D1D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2CustomBinds", "MQ2CustomBinds\MQ2CustomBinds.vcxproj", "{9329D84C-D3D8-46DC-9023-F35B2F57238C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2HUD", "MQ2HUD\MQ2HUD.vcxproj", "{F3077B9F-C8B6-441B-9A21-C76EA07CCE2B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1DC6A1B4-844B-4365-922C-2362BCC8BE8F}"
 	ProjectSection(SolutionItems) = preProject
+		Release\Changes-ISXEQ.txt = Release\Changes-ISXEQ.txt
 		Release\Changes.txt = Release\Changes.txt
+		Release\Custom.ini = Release\Custom.ini
+		Release\eqgame.ini = Release\eqgame.ini
 		Release\GPL.txt = Release\GPL.txt
 		Release\ItemDB.txt = Release\ItemDB.txt
 		Release\locations.txt = Release\locations.txt
+		Release\MacroQuest.ini = Release\MacroQuest.ini
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Nav_MeshGenerator", "MQ2Nav\MeshGenerator\MeshGenerator.vcxproj", "{0F4E974D-3E48-44F0-945E-90C97E1E254D}"
@@ -55,8 +89,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "MQ2Nav\dependencies\zlib\zlib.vcxproj", "{D5FC478C-D94C-437F-9911-14F1FB7B9A2B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Camera", "MQ2Camera\MQ2Camera.vcxproj", "{F96C4FD8-B3A8-4FE5-9B34-E171EF5CBA60}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Webmail", "MQ2Webmail\MQ2Webmail.vcxproj", "{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Py", "MQ2Py\MQ2Py.vcxproj", "{52975F5A-B1BA-4598-A41D-9B53D56105EE}"
 EndProject
@@ -154,10 +186,6 @@ Global
 		{F96C4FD8-B3A8-4FE5-9B34-E171EF5CBA60}.Debug|Win32.Build.0 = Debug|Win32
 		{F96C4FD8-B3A8-4FE5-9B34-E171EF5CBA60}.Release|Win32.ActiveCfg = Release|Win32
 		{F96C4FD8-B3A8-4FE5-9B34-E171EF5CBA60}.Release|Win32.Build.0 = Release|Win32
-		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Debug|Win32.ActiveCfg = Debug|Win32
-		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Debug|Win32.Build.0 = Debug|Win32
-		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Release|Win32.ActiveCfg = Release|Win32
-		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Release|Win32.Build.0 = Release|Win32
 		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Debug|Win32.ActiveCfg = Debug|Win32
 		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Debug|Win32.Build.0 = Debug|Win32
 		{52975F5A-B1BA-4598-A41D-9B53D56105EE}.Release|Win32.ActiveCfg = Release|Win32

@@ -14,7 +14,7 @@ Debug/
 Intermediate/
 ISXDK/
 ISXEQ*Intermediate
-MQ2Auth0.h
+MQ2Main/MQ2Auth0.h
 Release/
 UpgradeLog.htm
 packages/
