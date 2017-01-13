@@ -72,7 +72,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Nav_MeshGenerator", "MQ2Nav\MeshGenerator\MeshGenerator.vcxproj", "{0F4E974D-3E48-44F0-945E-90C97E1E254D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MQ2Nav_Contrib", "MQ2Nav_Contrib", "{1C00A77D-99DC-4366-8569-E75827AAF729}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MQ2Nav_Projects", "MQ2Nav_Projects", "{1C00A77D-99DC-4366-8569-E75827AAF729}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "MQ2Nav\dependencies\imgui\imgui.vcxproj", "{81EA8021-75BF-4D3F-8F60-12755690F6F6}"
 EndProject
@@ -93,6 +93,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Py", "MQ2Py\MQ2Py.vcxproj", "{52975F5A-B1BA-4598-A41D-9B53D56105EE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Test", "MQ2Test\MQ2Test.vcxproj", "{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2AutoLogin", "MQ2AutoLogin\MQ2AutoLogin.vcxproj", "{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -196,6 +198,10 @@ Global
 		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Debug|Win32.Build.0 = Debug|Win32
 		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Release|Win32.ActiveCfg = Release|Win32
 		{F0401F36-3C4E-4FF2-B665-9561F8BA3FB2}.Release|Win32.Build.0 = Release|Win32
+		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Debug|Win32.Build.0 = Debug|Win32
+		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Release|Win32.ActiveCfg = Release|Win32
+		{BC2C195E-87B3-4974-A398-0E1FA51FBB8E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
