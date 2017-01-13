@@ -519,6 +519,7 @@ namespace MQ2Globals
 	EQLIB_VAR CFriendsWnd **ppFriendsWnd;
 	EQLIB_VAR CMusicPlayerWnd **ppMusicPlayerWnd;
 	
+	EQLIB_VAR CRealEstateItemsWnd **ppRealEstateItemsWnd;
 	EQLIB_VAR CAchievementsWnd **ppAchievementsWnd;
 	EQLIB_VAR CAlarmWnd **ppAlarmWnd;
 	EQLIB_VAR CLoadskinWnd **ppLoadskinWnd;
@@ -615,6 +616,7 @@ namespace MQ2Globals
 #define pBookWnd (*ppBookWnd)
 #define pFriendsWnd (*ppFriendsWnd)
 #define pMusicPlayerWnd (*ppMusicPlayerWnd)
+#define pRealEstateItemsWnd (*ppRealEstateItemsWnd)
 #define pAchievementsWnd (*ppAchievementsWnd)
 #define pAlarmWnd (*ppAlarmWnd)
 #define pLoadskinWnd (*ppLoadskinWnd)
@@ -821,7 +823,10 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD pinstPlayerPath;
 	EQLIB_VAR DWORD pinstTargetIndicator;
 	EQLIB_VAR DWORD pinstCTargetManager;
+	EQLIB_VAR DWORD EQObject_Top;
+	EQLIB_VAR DWORD pinstRealEstateItems;
 	
+	EQLIB_VAR DWORD pinstCRealEstateItemsWnd;
 	EQLIB_VAR DWORD pinstCAchievementsWnd;
 	EQLIB_VAR DWORD pinstCTextOverlay;
 	EQLIB_VAR DWORD pinstCAudioTriggersWindow;
@@ -1116,7 +1121,8 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD CItemDisplayWnd__UpdateStrings;
 	EQLIB_VAR DWORD CItemDisplayWnd__InsertAugmentRequest;
 	EQLIB_VAR DWORD CItemDisplayWnd__RemoveAugmentRequest;
-	
+	EQLIB_VAR DWORD CItemDisplayWnd__SetItem;
+
 	EQLIB_VAR DWORD CLabel__Draw;
 
 	EQLIB_VAR DWORD CListWnd__CListWnd;
@@ -1137,6 +1143,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD CListWnd__DrawItem;
 	EQLIB_VAR DWORD CListWnd__DrawLine;
 	EQLIB_VAR DWORD CListWnd__DrawSeparator;
+	EQLIB_VAR DWORD CListWnd__EnableLine;
 	EQLIB_VAR DWORD CListWnd__EnsureVisible;
 	EQLIB_VAR DWORD CListWnd__ExtendSel;
 	EQLIB_VAR DWORD CListWnd__GetColumnMinWidth;
@@ -1151,6 +1158,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD CListWnd__GetItemText;
 	EQLIB_VAR DWORD CListWnd__GetSelList;
 	EQLIB_VAR DWORD CListWnd__GetSeparatorRect;
+	EQLIB_VAR DWORD CListWnd__InsertLine;
 	EQLIB_VAR DWORD CListWnd__RemoveLine;
 	EQLIB_VAR DWORD CListWnd__SetColors;
 	EQLIB_VAR DWORD CListWnd__SetColumnJustification;
@@ -1249,7 +1257,8 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD CTextOverlay__DisplayText;
 
 	EQLIB_VAR DWORD CTextureFont__DrawWrappedText;
-
+	EQLIB_VAR DWORD CTextureFont__GetTextExtent;
+	
 	EQLIB_VAR DWORD CWebManager__CreateHtmlWnd;
 
 	EQLIB_VAR DWORD CXMLDataManager__GetXMLData;
@@ -1342,6 +1351,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD EQ_Item__IsKeyRingItem;
 	EQLIB_VAR DWORD EQ_Item__CanGoInBag;
 	EQLIB_VAR DWORD EQ_Item__GetMaxItemCount;
+	EQLIB_VAR DWORD EQ_Item__GetAugmentFitBySlot;
 	
 	EQLIB_VAR DWORD EQ_LoadingS__SetProgressBar;
 	EQLIB_VAR DWORD EQ_LoadingS__Array;
@@ -1356,7 +1366,9 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD EQ_PC__HasLoreItem;
 	EQLIB_VAR DWORD EQ_PC__RemoveMyAffect;
 	EQLIB_VAR DWORD EQ_PC__GetKeyRingItems;
-
+	EQLIB_VAR DWORD EQ_PC__GetItemContainedRealEstateIds;
+	EQLIB_VAR DWORD EQ_PC__GetNonArchivedOwnedRealEstates;
+	
 	EQLIB_VAR DWORD ItemBaseContainer__ItemBaseContainer;
 	EQLIB_VAR DWORD ItemBaseContainer__CreateItemGlobalIndex;
 
@@ -1379,6 +1391,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD PlayerZoneClient__ChangeHeight;
 	EQLIB_VAR DWORD EQPlayer__CanSeeTargetIndicator;
 	EQLIB_VAR DWORD PlayerBase__GetVisibilityLineSegment;
+	EQLIB_VAR DWORD EQPlayer__GetAdjustedSkill;
 	
 	EQLIB_VAR DWORD EQPlayerManager__GetSpawnByID;
 	EQLIB_VAR DWORD EQPlayerManager__GetSpawnByName;
@@ -1405,7 +1418,9 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD PcZoneClient__GetCurrentMod;
 	EQLIB_VAR DWORD PcZoneClient__GetModCap;
 	EQLIB_VAR DWORD PcZoneClient__CanEquipItem;
-
+	EQLIB_VAR DWORD PcZoneClient__GetItemByID;
+	EQLIB_VAR DWORD PcZoneClient__GetItemByItemClass;
+	
 	EQLIB_VAR DWORD EQSwitch__UseSwitch;
 
 	EQLIB_VAR BOOL gbTimeStampChat;
@@ -1450,6 +1465,7 @@ namespace MQ2Globals
 	EQLIB_VAR DWORD ItemGlobalIndex__IsValidIndex;
 	EQLIB_VAR DWORD CLargeDialogWnd__Open;
 	EQLIB_VAR DWORD CWndDisplayManager__FindWindowA;
+	EQLIB_VAR DWORD CItemDisplayManager__CreateWindowInstance;
 	EQLIB_VAR DWORD CCursorAttachment__AttachToCursor;
 	EQLIB_VAR DWORD CCursorAttachment__Deactivate;
 }

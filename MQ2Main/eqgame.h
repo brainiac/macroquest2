@@ -163,10 +163,13 @@ GNU General Public License for more details.
 #define pinstPlayerPath_x                                          0xFBFA58
 #define pinstTargetIndicator_x                                     0xFC03F0
 #define pinstCTargetManager_x                                      0xFC0450
-
+#define EQObject_Top_x                                             0xF2CAD0
+#define pinstRealEstateItems_x                                     0xFBFFFC
+ 
 //// 
 //Section 2:  UI Related Offsets 
 //// 
+#define pinstCRealEstateItemsWnd_x                                 0xE795B8
 #define pinstCAchievementsWnd_x                                    0xE79614
 #define pinstCTextOverlay_x                                        0xD36BE0
 #define pinstCAudioTriggersWindow_x                                0xD36A70
@@ -478,9 +481,13 @@ GNU General Public License for more details.
 #define CItemDisplayWnd__UpdateStrings_x                           0x6D39F0
 #define CItemDisplayWnd__InsertAugmentRequest_x                    0x6E09B0
 #define CItemDisplayWnd__RemoveAugmentRequest_x                    0x6E0EF0
+#define CItemDisplayWnd__SetItem_x                                 0x6E69F0
 
 //CWndDisplayManager
 #define CWndDisplayManager__FindWindowA_x                          0x7D1290
+
+//CItemDisplayManager
+#define CItemDisplayManager__CreateWindowInstance_x                0x6DA850
 
 // CLabel 
 #define CLabel__Draw_x                                             0x6ED6D0
@@ -504,6 +511,7 @@ GNU General Public License for more details.
 #define CListWnd__DrawItem_x                                       0x8AAC50
 #define CListWnd__DrawLine_x                                       0x8AB3C0
 #define CListWnd__DrawSeparator_x                                  0x8AB7C0
+#define CListWnd__EnableLine_x                                     0x8A8F50
 #define CListWnd__EnsureVisible_x                                  0x8A9BB0
 #define CListWnd__ExtendSel_x                                      0x8AAB60
 #define CListWnd__GetColumnMinWidth_x                              0x8A8720
@@ -518,6 +526,7 @@ GNU General Public License for more details.
 #define CListWnd__GetItemText_x                                    0x8A8200
 #define CListWnd__GetSelList_x                                     0x8ACF10
 #define CListWnd__GetSeparatorRect_x                               0x8AA4F0
+#define CListWnd__InsertLine_x                                     0x8ACE80
 #define CListWnd__RemoveLine_x                                     0x8ACE90
 #define CListWnd__SetColors_x                                      0x8A7F70
 #define CListWnd__SetColumnJustification_x                         0x8A89B0
@@ -627,6 +636,7 @@ GNU General Public License for more details.
 
 // CTextureFont
 #define CTextureFont__DrawWrappedText_x                            0x8C0500
+#define CTextureFont__GetTextExtent_x                              0x8C0260
 
 //CWebManager
 #define CWebManager__CreateHtmlWnd_x                               0x62AE30
@@ -734,6 +744,7 @@ GNU General Public License for more details.
 #define EQ_Item__CanGoInBag_x                                      0x58C240
 #define EQ_Item__GetMaxItemCount_x                                 0x833E90
 #define EQ_Item__GetHeldItem_x                                     0x8358C0
+#define EQ_Item__GetAugmentFitBySlot_x                             0x83F890
 
 // EQ_LoadingS 
 #define EQ_LoadingS__SetProgressBar_x                              0x4C96A0
@@ -750,6 +761,8 @@ GNU General Public License for more details.
 #define EQ_PC__GetPcZoneClient_x                                   0x5D53E0
 #define EQ_PC__RemoveMyAffect_x                                    0x5B4170
 #define EQ_PC__GetKeyRingItems_x                                   0x843060
+#define EQ_PC__GetItemContainedRealEstateIds_x                     0x855650
+#define EQ_PC__GetNonArchivedOwnedRealEstates_x                    0x849E30
 
 // EQItemList 
 #define EQItemList__EQItemList_x                                   0x514D10
@@ -774,6 +787,7 @@ GNU General Public License for more details.
 #define PlayerZoneClient__ChangeHeight_x                           0x5DB180
 #define EQPlayer__CanSeeTargetIndicator_x                          0x91A800
 #define PlayerBase__GetVisibilityLineSegment_x                     0x91A4A0
+#define EQPlayer__GetAdjustedSkill_x                               0x4634B0
 
 //EQPlayerManager
 #define EQPlayerManager__GetSpawnByID_x                            0x5CF990
@@ -804,6 +818,8 @@ GNU General Public License for more details.
 #define PcZoneClient__GetCurrentMod_x                              0x458870
 #define PcZoneClient__GetModCap_x                                  0x456030
 #define PcZoneClient__CanEquipItem_x                               0x5B6100
+#define PcZoneClient__GetItemByID_x                                0x5BAB10
+#define PcZoneClient__GetItemByItemClass_x                         0x5BB550
 
 //Doors
 #define EQSwitch__UseSwitch_x                                      0x5486B0
