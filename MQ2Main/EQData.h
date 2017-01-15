@@ -2482,26 +2482,24 @@ typedef struct _EQSWITCH {
 /*0x78*/    EActorType  ActorType;
 /*0x7c*/    void*       pTerrainObject;//CTerrainObject*
 /*0x80*/    void*       HighlightData;//HighlightData*
-/*0x84*/__declspec(align(16))    float        yAdjustment1;//well this is actually a Matrix4x4... but whatever...
-/*0x88*/__declspec(align(16))    float        xAdjustment1;
-/*0x8c*/ __declspec(align(16))   float        zAdjustment1;
-/*0x90*/ __declspec(align(16))   float        headingAdjustment1;
-/*0x94*/__declspec(align(16))    float        yAdjustment2;
-/*0x98*/ __declspec(align(16))   float        xAdjustment2;
-/*0x9c*/ __declspec(align(16))   float        zAdjustment2;
-/*0xa0*/ __declspec(align(16))   float        headingAdjustment2;
-/*0xa4*/__declspec(align(16))    float        yAdjustment3;
-/*0xa8*/__declspec(align(16))    float        xAdjustment3;
-/*0xac*/__declspec(align(16))    float        zAdjustment3;
-/*0xb0*/__declspec(align(16))    float        headingAdjustment3;
-/*0xb4*/__declspec(align(16))    float        yAdjustment4;
-/*0xb8*/ __declspec(align(16))   float        xAdjustment4;
-/*0xbc*/ __declspec(align(16))   float        zAdjustment4;
-/*0xc0*/__declspec(align(16))    float        headingAdjustment4;
-/*0xd0*/   bool        bbHasAttachSRT;
-/*0xd1*/   bool        bDisableDesignOverride;
-/*0xd4*/   int         Unknown0x1d4[4];
-/*0xe4*/  __declspec(align(16)) Matrix4x4   transformMatrix;//used for new armor
+/*0x84*/    float        yAdjustment1;//from this point on im not sure -eqmule 2013 dec 16
+/*0x88*/    float        xAdjustment1;
+/*0x8c*/    float        zAdjustment1;
+/*0x90*/    float        headingAdjustment1;
+/*0x94*/    float        yAdjustment2;
+/*0x98*/    float        xAdjustment2;
+/*0x9c*/    float        zAdjustment2;
+/*0xa0*/    float        headingAdjustment2;
+/*0xa4*/    float        yAdjustment3;
+/*0xa8*/    float        xAdjustment3;
+/*0xac*/    float        zAdjustment3;
+/*0xb0*/    float        headingAdjustment3;
+/*0xb4*/    float        adjustments4[3];
+/*0xc0*/    float        adjustments5[4];
+/*0xd0*/    bool        bbHasAttachSRT;
+/*0xd1*/    bool        bDisableDesignOverride;
+/*0xd4*/    int         Unknown0x1d4[4];
+/*0xe4*/    Matrix4x4   transformMatrix;//used for new armor
 /*0x128*/   FLOAT        Heading;
 /*0x12c*/   BYTE         Unknown0x12c[0x14];
 /*0x140*/   float        HeightAdjustment;//this is most likely wrong dec 16 2013 eqmule
