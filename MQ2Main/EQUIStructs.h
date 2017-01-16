@@ -257,7 +257,7 @@ CXW_NO_VTABLE_BEGIN \
 /*0x0058*/ void*	pTextObject; \
 /*0x005C*/ bool bClickThrough; /* if true you can click through the window, well it doesnt work for our chatwindow (yet) so more work is needed to figure out why */ \
 /*0x0060*/ struct _CSIDLWND* pWndFocusOther; \
-/*0x0064*/ ArrayClass2<UINT> RuntimeTypes; \
+/*0x0064*/ ArrayClass2_RO<UINT> RuntimeTypes; \
 /*0x0080*/ bool		bClientClipRectChanged; \
 /*0x0084*/ int		VScrollPos; \
 /*0x0088*/ tagSIZE	MaxClientSize; \

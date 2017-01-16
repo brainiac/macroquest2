@@ -118,6 +118,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ArrayTest.cpp" />
     <ClCompile Include="MQ2Test.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -3043,8 +3043,8 @@ class CWndDisplayManager
 {
 public:
 	PVOID vfTable;
-	ArrayClass2<CXWnd*> pWindows;
-	ArrayClass2<LONG> pTimes;
+	ArrayClass2_RO<CXWnd*> pWindows;
+	ArrayClass2_RO<LONG> pTimes;
 	int MaxWindows;
 EQLIB_OBJECT int CWndDisplayManager::FindWindowA(bool bNewWnd);
 EQLIB_OBJECT CWndDisplayManager::CWndDisplayManager();
@@ -3141,7 +3141,7 @@ struct TreeData
 };
 struct SListWndLine
 {
-	ArrayClass<SListWndCell> Cells;
+	ArrayClass_RO<SListWndCell> Cells;
 	UINT	Data;
 	int		Height;
 	bool	bSelected;
@@ -3193,8 +3193,8 @@ public:
 /*0x000*/ PCCONTEXTMENUVFTABLE pvfTable;
 /*0x004*/ CXW_NO_VTABLE
 	//alright now that we got that settled, it also has members of its own:
-/*0x1e0*/ ArrayClass<SListWndLine> ItemsArray;
-/*0x1f0*/ ArrayClass<SListWndColumn> Columns;
+/*0x1e0*/ ArrayClass_RO<SListWndLine> ItemsArray;
+/*0x1f0*/ ArrayClass_RO<SListWndColumn> Columns;
 /*0x200*/ int	CurSel;
 /*0x204*/ int	CurCol;
 /*0x208*/ int	DownItem;

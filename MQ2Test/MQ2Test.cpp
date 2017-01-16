@@ -67,6 +67,8 @@ public:
 	}
 };
 
+bool DoArrayClassTests();
+
 // Called once, when the plugin is to initialize
 PLUGIN_API VOID InitializePlugin(VOID)
 {
@@ -74,6 +76,9 @@ PLUGIN_API VOID InitializePlugin(VOID)
 
 	pCharExtType = new MQ2CharacterExtensionType;
 	AddMQ2TypeExtension("character", pCharExtType);
+
+	if (!DoArrayClassTests())
+		WriteChatf("Array Tests Failed");
 }
 
 // Called once, when the plugin is to shutdown

@@ -11,8 +11,12 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 ******************************************************************************/
+
 #pragma pack(push)
 #pragma pack(8)
+
+#include "ArrayClass.h"
+
 namespace EQData
 {
 
@@ -823,216 +827,7 @@ public:
 /*0x04*/ ItemGlobalIndex2::ItemIndex Index;
 /*0x0a*/
 };
-class CDynamicArrayBase
-{
-public:
-	inline int GetLength() const
-	{
-		return Count;
-	}
-/*0x1188*/	int Count;
-};
-//this class has some members like Reset and so on
-//but we dont need them right now...
-//todo: spend some time on fully implementing this
-template <typename ArrayType> class ArrayClass2 : public CDynamicArrayBase
-{
-public:
-/*0x04*/	int Size;
-/*0x08*/	int Mask;
-/*0x0c*/	int Shift;
-/*0x10*/	ArrayType** pNext;
-/*0x14*/	int memAlloc;
-/*0x18*/	bool bValid;
-/*0x1c*/
-	int GetNext(int index) const
-	{
-		return index >> Shift;
-	}
-	int GetIndex(int index) const
-	{
-		return index & Mask;
-	}
-#pragma warning( disable:4715 ) // warning C4715: 'function' : not all control paths return a value
-	ArrayType& GetNextByIndex(int index) const {
-		if(pNext)
-			return pNext[GetNext(index)][GetIndex(index)];
-	}
-#pragma warning( default:4715 )
-	ArrayType& operator[] (int index);
-	const ArrayType& operator[] (int index) const;
-	ArrayClass2& operator=(const ArrayClass2 &copy);
-	void ArrayClass2<ArrayType>::Assure(int mAlloc);
-	int GetNextByLen(int len) const
-	{
-		return len <= 0 ? 0 : GetNext(len - 1) + 1;
-	}
-	inline void ArrayClass2<ArrayType>::Reset();
-};
-template <typename ArrayType> inline ArrayType& ArrayClass2<ArrayType>::operator[] (int index)
-{
-	return GetNextByIndex(index);
-}
-template <typename ArrayType> inline void ArrayClass2<ArrayType>::Reset()
-{
-	for (int i = 0; i < memAlloc; i++) {
-		delete[] pNext[i];
-	}
-	delete[] pNext;
-	pNext = 0;
-	memAlloc = 0;
-	Count = 0;
-}
-template <typename ArrayType> void ArrayClass2<ArrayType>::Assure(int mAlloc)
-{
-	if (bValid && mAlloc > 0) {
-		int newAlloc = GetNextByLen(mAlloc);
-		if (newAlloc > memAlloc) {
-			ArrayType** temp = new ArrayType*[newAlloc];
-			if (temp == NULL) {
-				bValid = false;             
-			} else {
-				for (int i=0; i<memAlloc; i++) {
-					temp[i] = pNext[i];
-				}
-				for (int i = memAlloc; i < newAlloc; i++) {
-					temp[i] = new ArrayType[Size];
-					if (temp[i] == NULL) {
-						bValid = false;
-						break;
-					}
-				}
-				if (bValid) {
-					delete[] pNext;
-					pNext = temp;
-					memAlloc = newAlloc;
-				}
-			}
-		}
-		if (!bValid) {
-			Reset();
-			//exception?
-		}
-	}
-}
-template <typename ArrayType> ArrayClass2<ArrayType>& ArrayClass2<ArrayType>::operator=(const ArrayClass2 &copy)
-{
-	if (this != &copy) {
-		this->Count = 0;
-		if (copy.Count) {
-			Assure(copy.Count);
-			if (this->bValid) {
-				for (int i = 0; i < copy.Count; i++) {
-					GetNextByIndex(i) = copy.GetNextByIndex(i);
-				}
-			}
-			Count = copy.Count;
-		}
-	}
-	return *this;
-}
 
-template <typename ArrayType> class ArrayClass : public CDynamicArrayBase
-{
-public:
-/*0x118c*/	ArrayType* elements;
-/*0x1190*/	int elementAlloc;
-/*0x1194*/	bool bIsValid;
-/*0x1198*/
-ArrayClass();
-~ArrayClass();
-void ArrayClass<ArrayType>::Add(const ArrayType& element);
-void ArrayClass<ArrayType>::SetElementIdx(int Index, const ArrayType& element);
-void ArrayClass<ArrayType>::Assure(int MemAlloc);
-void ArrayClass<ArrayType>::InsertElement(int Index, const ArrayType& element);
-void ArrayClass<ArrayType>::Reset(bool bDeleteItems = true);
-ArrayType& ArrayClass<ArrayType>::operator[] (int Index);
-};
-template <typename ArrayType> inline ArrayType& ArrayClass<ArrayType>::operator[] (int Index)
-{
-	if (Index >= 0 && Index < Count && elements)
-	{
-		return elements[Index];
-	}
-}
-template <typename ArrayType> inline ArrayClass<ArrayType>::ArrayClass()
-{
-	elements = 0;
-	Count = 0;
-	elementAlloc = 0;
-	bIsValid = true;
-}
-template <typename ArrayType> inline void ArrayClass<ArrayType>::Reset(bool bDeleteItems)
-{
-	if (bDeleteItems && elements)
-	{
-		delete [] elements;
-	}
-	Count = 0;
-	elements = 0;
-	elementAlloc = 0;
-}
-template <typename ArrayType> inline ArrayClass<ArrayType>::~ArrayClass()
-{
-	Reset();
-}
-template <typename ArrayType> inline void ArrayClass<ArrayType>::Assure(int MemAlloc)
-{
-	if (MemAlloc) {
-		if (MemAlloc > elementAlloc || !elements) {
-			ArrayType* AT = new ArrayType[(MemAlloc+4)*2];
-			if (AT)	{
-				if (elements) {
-					for (int i = 0; i < Count; i++)	{
-						AT[i] = elements[i];
-					}
-					delete [] elements;
-				}
-				elements = AT;
-				elementAlloc = (MemAlloc+4)*2;
-			} else {
-				delete [] elements;
-				elements = 0;
-				elementAlloc = 0;
-				bIsValid = false;
-			}
-		}
-	}
-}
-template <typename ArrayType> inline void ArrayClass<ArrayType>::SetElementIdx(int Index, const ArrayType& element)
-{
-	if (Index < 0)
-		return;
-	if (Index >= Count)
-	{
-		Assure(Index+1);
-		if (elements)
-			Count = Index+1;
-	}
-	if (elements)
-		elements[Index] = element;
-}
-template <typename ArrayType> inline void ArrayClass<ArrayType>::Add(const ArrayType& element)
-{
-	SetElementIdx(Count, element);
-}
-template <typename ArrayType> inline void ArrayClass<ArrayType>::InsertElement(int Index, const ArrayType& element)
-{
-	if (Index < 0)
-		return;
-	if (Index >= Count) {
-		SetElementIdx(Index, element);
-		return;
-	}
-	Assure(Count+1);
-	if (!elements)
-		return;
-	for (int i = Count; i > Index; i--) {
-		elements[i] = elements[i - 1];
-	}
-	elements[Index] = element;
-	Count++;
-}
 class ItemArray
 {
 public:
@@ -1099,7 +894,7 @@ typedef struct _CONTENTS {
 /*0x00F8*/ int	EvolvingCurrentLevel; \
 /*0x00FC*/ int	NoteStatus; \
 /*0x0100*/ LONG	LastEquipped; \
-/*0x0104*/ ArrayClass<UINT> RealEstateArray; \
+/*0x0104*/ ArrayClass_RO<UINT> RealEstateArray; \
 /*0x0114*/ UINT	RespawnTime; \
 /*0x0118*/ int	OrnamentationIcon; \
 /*0x011C*/ struct _CXSTR *SaveString; \
@@ -1312,7 +1107,7 @@ class CPlayerPointManager
 {
 public:
 /*0x00*/	PVOID vfTable;
-/*0x04*/	ArrayClass<Point *>Points;
+/*0x04*/	ArrayClass_RO<Point *>Points;
 /*0x14*/
 };
 struct PointNamesEntry
@@ -1329,27 +1124,27 @@ class PointSystemBase
 {
 public:
 /*0x00*/	PVOID vfTable;
-/*0x04*/	ArrayClass<PointNamesEntry *>PointNameEntries;
+/*0x04*/	ArrayClass_RO<PointNamesEntry *>PointNameEntries;
 /*0x14*/
 };
-template<class T> class Node
+template<class T> class LinkedListNode
 {
 public:
-    T		Object;
-	Node	*pNext;
-	Node	*pPrev;
+	T               Object;
+	LinkedListNode* pNext;
+	LinkedListNode* pPrev;
 };
 template <class T> class DoublyLinkedList
 {
 public:
-/*0x00*/	PVOID vfTable;
-/*0x04*/    Node<T> *pHead;
-/*0x08*/   Node<T> *pTail;
-/*0x0c*/   Node<T> *pCurObject;
-/*0x10*/    Node<T> *pCurObjectNext;
-/*0x14*/    Node<T> *pCurObjectPrev;
+/*0x00*/    PVOID vfTable;
+/*0x04*/    LinkedListNode<T>* pHead;
+/*0x08*/    LinkedListNode<T>* pTail;
+/*0x0c*/    LinkedListNode<T>* pCurObject;
+/*0x10*/    LinkedListNode<T>* pCurObjectNext;
+/*0x14*/    LinkedListNode<T>* pCurObjectPrev;
 /*0x18*/    int NumObjects;
-/*0x1c*/	int RefCount;
+/*0x1c*/    int RefCount;
 /*0x20*/
 };
 class PendingReward
@@ -1509,9 +1304,9 @@ typedef struct _CHARINFO {
 /*0x1B18*/ UINT			LoyaltyVelocity;
 /*0x1B1c*/ UINT			LoyaltyTokens;
 /*0x1B20*/ bool			bHasLoyaltyInfo;
-/*0x1B24*/ ArrayClass<int> OwnedRealEstates;
-/*0x1B34*/ ArrayClass<int> OwnedItemRealEstates;
-/*0x1B44*/ ArrayClass<int> ArchivedRealEstates;
+/*0x1B24*/ ArrayClass_RO<int> OwnedRealEstates;
+/*0x1B34*/ ArrayClass_RO<int> OwnedItemRealEstates;
+/*0x1B44*/ ArrayClass_RO<int> ArchivedRealEstates;
 /*0x1B54*/ CHAR			OverridePetName[0x40];
 /*0x1B94*/ bool			bCanRequestPetNameChange;
 /*0x1B95*/ CHAR			OverrideFamiliarName[0x40];//guessing 
@@ -2424,8 +2219,8 @@ typedef struct _SPAWNINFO {
 /*0x115c*/ FLOAT	CachedCeilingLocationZ;
 /*0x1160*/ FLOAT	CachedCeilingHeight;
 /*0x1164*/ CCapsule StaticCollision;//size 0x1c
-/*0x1180*/ ArrayClass<PhysicsEffect> mPhysicsEffects;//size is 0x10
-/*0x1190*/ ArrayClass<bool> PhysicsEffectsUpdated;//size is 0x10
+/*0x1180*/ ArrayClass_RO<PhysicsEffect> mPhysicsEffects;//size is 0x10
+/*0x1190*/ ArrayClass_RO<bool> PhysicsEffectsUpdated;//size is 0x10
 /* ********************* PlayerZoneClient Ends Here ******************* */
 /* ********************** PlayerClient Starts Here ******************** */
 /*0x11A0*/ int		Animation; //IT MUST BE at 0x1188 /* Current Animation Playing. */
@@ -2545,7 +2340,7 @@ typedef struct _SPAWNINFO {
 /*0x1f54*/ int		InteractiveObjectType;
 /*0x1f58*/ int		SoundIDs[0xa];//0x28 bytes
 /*0x1f80*/ UINT		LastHistorySentTime;
-/*0x1f84*/ ArrayClass2<UINT>	BardTwistSpells;//size 0x1c
+/*0x1f84*/ ArrayClass2_RO<UINT>	BardTwistSpells;//size 0x1c
 /*0x1fA0*/ UINT		CurrentBardTwistIndex;
 /*0x1fA4*/ PlayerPhysicsClient mPlayerPhysicsClient;//size 0x28
 /*0x1FCC*/ int		SpawnStatus[6];//todo: look closer at these i think they can show like status of mobs slowed, mezzed etc, but not sure
