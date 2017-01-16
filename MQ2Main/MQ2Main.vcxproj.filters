@@ -154,5 +154,8 @@
     <ClInclude Include="EQUIStructs.h">
       <Filter>Header Files\Live</Filter>
     </ClInclude>
+    <ClInclude Include="ArrayClass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

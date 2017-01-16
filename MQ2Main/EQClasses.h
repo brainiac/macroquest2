@@ -663,13 +663,15 @@ CXW;
 
 class CSidlScreenWnd
 {
+	void Constructor(class CXWnd *pWnd, class CXStr *Template, int Flags, int unknown4, char *unknown5);
+	void Constructor(class CXWnd *x, class CXStr*);
 public:
 EQLIB_OBJECT enum UIType CSidlScreenWnd::GetType();
 EQLIB_OBJECT class CXMLData * CSidlScreenWnd::GetXMLData();
 EQLIB_OBJECT class CXWnd * CSidlScreenWnd::GetChildItem(PCHAR Name);
 EQLIB_OBJECT CSidlScreenWnd::CSidlScreenWnd() {};
-EQLIB_OBJECT CSidlScreenWnd::CSidlScreenWnd(class CXWnd *,class CXStr);
-EQLIB_OBJECT CSidlScreenWnd::CSidlScreenWnd(class CXWnd *pWnd,class CXStr *Template,int Flags,int unknown4, char *unknown5);
+EQLIB_OBJECT CSidlScreenWnd::CSidlScreenWnd(class CXWnd* pWnd, class CXStr* Template) { Constructor(pWnd, Template); }
+EQLIB_OBJECT CSidlScreenWnd::CSidlScreenWnd(class CXWnd* pWnd, class CXStr* Template, int Flags, int unknown4, char *unknown5) { Constructor(pWnd, Template, Flags, unknown4, unknown5); }
 EQLIB_OBJECT CSidlScreenWnd::CSidlScreenWnd(class CXWnd *,unsigned __int32,class CXRect,class CXStr);
 EQLIB_OBJECT class CScreenPieceTemplate * CSidlScreenWnd::GetSidlPiece(class CXStr*, int dummy=1)const;
 EQLIB_OBJECT class CXRect CSidlScreenWnd::GetSidlPieceRect(class CScreenPieceTemplate *,class CXRect)const;
@@ -3043,8 +3045,8 @@ class CWndDisplayManager
 {
 public:
 	PVOID vfTable;
-	ArrayClass2<CXWnd*> pWindows;
-	ArrayClass2<LONG> pTimes;
+	ArrayClass2_RO<CXWnd*> pWindows;
+	ArrayClass2_RO<LONG> pTimes;
 	int MaxWindows;
 EQLIB_OBJECT int CWndDisplayManager::FindWindowA(bool bNewWnd);
 EQLIB_OBJECT CWndDisplayManager::CWndDisplayManager();
@@ -3141,7 +3143,7 @@ struct TreeData
 };
 struct SListWndLine
 {
-	ArrayClass<SListWndCell> Cells;
+	ArrayClass_RO<SListWndCell> Cells;
 	UINT	Data;
 	int		Height;
 	bool	bSelected;
@@ -3193,8 +3195,8 @@ public:
 /*0x000*/ PCCONTEXTMENUVFTABLE pvfTable;
 /*0x004*/ CXW_NO_VTABLE
 	//alright now that we got that settled, it also has members of its own:
-/*0x1e0*/ ArrayClass<SListWndLine> ItemsArray;
-/*0x1f0*/ ArrayClass<SListWndColumn> Columns;
+/*0x1e0*/ ArrayClass_RO<SListWndLine> ItemsArray;
+/*0x1f0*/ ArrayClass_RO<SListWndColumn> Columns;
 /*0x200*/ int	CurSel;
 /*0x204*/ int	CurCol;
 /*0x208*/ int	DownItem;
