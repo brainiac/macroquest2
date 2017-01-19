@@ -14,7 +14,7 @@ void DoArrayClassTests()
 {
 	auto isEqual = [](const auto& array1, const std::vector<int>& vec) -> bool
 	{
-		if (array1.GetCount() != vec.size())
+		if (array1.GetLength() != vec.size())
 			return false;
 
 		for (int i = 0; i < (int)vec.size(); ++i)
