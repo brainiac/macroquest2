@@ -48,10 +48,10 @@ protected:
 
 public:
 	// two names for the same thing
-	int GetCount() const { return m_length; }
+	int GetLength() const { return m_length; }
 
 	// a microsoft extension - lets us get away with changing the implementation
-	__declspec(property(get = GetCount)) int Count;
+	__declspec(property(get = GetLength)) int Count;
 
 protected:
 	void ThrowArrayClassException() const
@@ -475,4 +475,79 @@ private:
 	}
 };
 
+class ResizePolicyNoShrink
+{
+public:
+};
+class ResizePolicyNoResize
+{
+public:
+};
+template<typename T, typename Key = int, typename ResizePolicy = ResizePolicyNoResize> class HashTable
+{
+public:
+	struct HashEntry
+	{
+		T Obj;
+		Key Key;
+		HashEntry *NextEntry;
+	};
+	template<typename K>
+	static unsigned HashValue( const K& key )
+	{
+		return key;
+	}
+	HashEntry **Table;
+	int TableSize;
+	int EntryCount;
+	int StatUsedSlots;
+	T *FindFirst(const Key& key) const;
+	int GetTotalEntries() const;
+	T *WalkFirst() const;
+	T *WalkNext(const T *prevRes) const;
+};
+template<typename T, typename Key, typename ResizePolicy> T *HashTable<T, Key, ResizePolicy>::WalkFirst() const
+{
+	for (int i = 0; i < TableSize; i++)
+	{
+		HashEntry *entry = Table[i];
+		if (entry != NULL)
+			return(&entry->Obj);
+	}
+	return NULL;
+}
+template<typename T, typename Key, typename ResizePolicy> T *HashTable<T, Key, ResizePolicy>::WalkNext(const T *prevRes) const
+{
+	HashEntry *entry = (HashEntry *)(((char *)prevRes) - offsetof(HashEntry, Obj));
+	int i = (HashValue<Key>(entry->Key)) % TableSize;
+	entry = entry->NextEntry;
+	if (entry != NULL)
+		return(&entry->Obj);
+
+	i++;
+	for (; i < TableSize; i++)
+	{
+		HashEntry *entry = Table[i];
+		if (entry != NULL)
+			return(&entry->Obj);
+	}
+	return NULL;
+}
+template<typename T, typename Key, typename ResizePolicy> int HashTable<T, Key, ResizePolicy>::GetTotalEntries() const
+{
+	return EntryCount;
+}
+template<typename T, typename Key, typename ResizePolicy> T *HashTable<T, Key, ResizePolicy>::FindFirst( const Key& key ) const
+{
+	if (Table==NULL)
+		return NULL;
+	HashEntry *entry = Table[( HashValue<Key>(key) ) % TableSize];
+	while (entry != NULL)
+	{
+		if (entry->Key == key)
+			return(&entry->Obj);
+		entry = entry->NextEntry;
+	}
+	return NULL;
+}
 #pragma pack(pop)

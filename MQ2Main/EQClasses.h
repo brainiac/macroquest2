@@ -7584,8 +7584,7 @@ EQLIB_OBJECT void CharacterZoneClient::MakeMeVisible(int,bool);
 EQLIB_OBJECT int CharacterZoneClient::GetItemCountWorn(int);
 EQLIB_OBJECT int CharacterZoneClient::GetItemCountInInventory(int);
 EQLIB_OBJECT int CharacterZoneClient::GetCursorItemCount(int);
-
-    bool HasSkill(int);
+EQLIB_OBJECT bool CharacterZoneClient::HasSkill(int);
 };
 
 class PcZoneClient
